@@ -4,19 +4,14 @@ ArrayList<Spike> spikes = new ArrayList<Spike>();
 ArrayList<Coin> coins = new ArrayList<Coin>();
 ArrayList<Particle> particles = new ArrayList<Particle>();
 
-boolean tombolKiri = false;
-boolean tombolKanan = false;
-boolean tombolLompat = false;
-boolean permintaanLompat = false;
-
 Player player;
 
-int MENU = 0;
-int HELP = 1;
-int PLAY = 2;
-int PAUSE = 3;
-int WIN = 4;
-int LOSE = 5;
+final int MENU = 0;
+final int HELP = 1;
+final int PLAY = 2;
+final int PAUSE = 3;
+final int WIN = 4;
+final int LOSE = 5;
 
 int gameState = MENU;
 int level = 1;
@@ -29,6 +24,10 @@ float cameraX = 0;
 float checkpointX = 80;
 float waktuAnimasi = 0;
 
+boolean tombolKiri = false;
+boolean tombolKanan = false;
+boolean tombolLompat = false;
+boolean permintaanLompat = false;
 boolean checkpointAktif = false;
 
 color merah = color(235, 55, 45);
@@ -42,7 +41,6 @@ void setup() {
   frameRate(60);
   sphereDetail(20);
 
-  player = new Player(100, 490);
   buatLevel();
 }
 
@@ -53,11 +51,12 @@ void draw() {
     gambarMenu();
   } else if (gameState == HELP) {
     gambarPetunjuk();
-  } else if (gameState == PLAY) {
+  } else if (gameState == PLAY || gameState == PAUSE) {
     jalankanGame();
-  } else if (gameState == PAUSE) {
-    jalankanGame();
-    gambarOverlayPause();
+
+    if (gameState == PAUSE) {
+      gambarOverlayPause();
+    }
   } else if (gameState == WIN) {
     gambarLatarGame();
     gambarOverlayMenang();
@@ -67,45 +66,33 @@ void draw() {
   }
 }
 
-// ==================== MENU ====================
+// ==================== LATAR ====================
 
-void gambarMenu() {
-  gambarLatarCerah();
-
+void gambarLatar() {
+  background(115, 205, 255);
   noStroke();
-  fill(255, 255, 255, 110);
-  ellipse(width/2, 190, 230, 230);
 
-  // Bola merah polos
-  fill(195, 35, 35);
-  ellipse(width/2, 180 + sin(waktuAnimasi * 2) * 5, 95, 95);
-  fill(235, 55, 45);
-  ellipse(width/2 - 2, 178 + sin(waktuAnimasi * 2) * 5, 82, 82);
-  fill(255, 150, 125, 190);
-  ellipse(width/2 - 15, 165 + sin(waktuAnimasi * 2) * 5, 12, 12);
+  fill(255, 225, 75);
+  ellipse(width - 110, 95, 76, 76);
 
-  textAlign(CENTER, CENTER);
-  fill(35, 105, 50);
-  textSize(60);
-  text("BOUNCE", width/2, 287);
+  fill(135, 215, 115);
+  ellipse(100, 510, 380, 250);
+  ellipse(390, 510, 430, 280);
+  ellipse(760, 515, 430, 270);
+  ellipse(1050, 510, 360, 250);
 
-  fill(35, 110, 55);
-  textSize(19);
-  text("PETUALANGAN DI PADANG RUMPUT", width/2, 333);
+  fill(75, 185, 75);
+  rect(0, 545, width, height - 545);
 
-  tombol(width/2 - 115, 390, 230, 54,
-         "MULAI BERMAIN", cyan);
-  tombol(width/2 - 115, 460, 230, 48,
-         "PETUNJUK", ungu);
+  fill(55, 160, 60);
+  ellipse(180, 565, 420, 100);
+  ellipse(650, 570, 520, 110);
+  ellipse(1000, 565, 380, 100);
 
-  fill(40, 100, 55);
-  textSize(12);
-  text("FINAL PROJECT - COMPUTER GRAPHICS", width/2, 560);
-  text("PROCESSING JAVA MODE", width/2, 582);
+  gambarAwanMenu();
 }
 
-void gambarBintang() {
-  // Awan bergerak
+void gambarAwanMenu() {
   noStroke();
 
   for (int i = 0; i < 5; i++) {
@@ -124,59 +111,134 @@ void gambarBintang() {
   }
 }
 
-void gambarLatarCerah() {
-  background(115, 205, 255);
+void gambarLatarGame() {
+  background(120, 210, 255);
   noStroke();
 
-  // Matahari
   fill(255, 225, 75);
-  ellipse(width - 110, 95, 76, 76);
+  ellipse(850 - cameraX * 0.04, 95, 72, 72);
 
-  // Bukit di kejauhan
-  fill(135, 215, 115);
-  ellipse(100, 510, 380, 250);
-  ellipse(390, 510, 430, 280);
-  ellipse(760, 515, 430, 270);
-  ellipse(1050, 510, 360, 250);
+  for (int i = 0; i < 6; i++) {
+    float x = i * 230 - (cameraX * 0.18) % 230;
+    float y = 95 + (i % 2) * 55;
 
-  // Padang rumput
-  fill(75, 185, 75);
-  rect(0, 545, width, height - 545);
+    fill(255, 255, 255, 220);
+    ellipse(x, y, 75, 28);
+    ellipse(x - 18, y + 1, 38, 25);
+    ellipse(x + 18, y - 7, 40, 32);
+  }
 
-  fill(55, 160, 60);
-  ellipse(180, 565, 420, 100);
-  ellipse(650, 570, 520, 110);
-  ellipse(1000, 565, 380, 100);
+  fill(150, 220, 125);
 
-  gambarBintang();
+  for (int i = 0; i < 8; i++) {
+    float x = i * 250 - (cameraX * 0.12) % 250;
+    ellipse(x, 500, 360, 230);
+  }
+
+  fill(105, 200, 85);
+
+  for (int i = 0; i < 8; i++) {
+    float x = i * 250 - (cameraX * 0.22) % 250;
+    ellipse(x + 90, 555, 370, 190);
+  }
+
+  fill(75, 185, 65);
+  rect(0, 585, width, 65);
+
+  fill(55, 160, 55);
+
+  for (int i = 0; i < width; i += 34) {
+    triangle(i, 590, i + 8, 575, i + 15, 590);
+  }
+}
+
+// ==================== MENU ====================
+
+void gambarMenu() {
+  gambarLatar();
+
+  noStroke();
+  fill(255, 255, 255, 110);
+  ellipse(width / 2, 190, 230, 230);
+
+  fill(195, 35, 35);
+  ellipse(width / 2, 180 + sin(waktuAnimasi * 2) * 5, 95, 95);
+
+  fill(235, 55, 45);
+  ellipse(width / 2 - 2, 178 + sin(waktuAnimasi * 2) * 5, 82, 82);
+
+  fill(255, 150, 125, 190);
+  ellipse(width / 2 - 15, 165 + sin(waktuAnimasi * 2) * 5, 12, 12);
+
+  textAlign(CENTER, CENTER);
+  fill(35, 105, 50);
+  textSize(60);
+  text("BOUNCE", width / 2, 287);
+
+  fill(35, 110, 55);
+  textSize(19);
+  text("PETUALANGAN DI PADANG RUMPUT", width / 2, 333);
+
+  tombol(width / 2 - 115, 390, 230, 54,
+    "MULAI BERMAIN", cyan);
+
+  tombol(width / 2 - 115, 460, 230, 48,
+    "PETUNJUK", ungu);
+
+  fill(40, 100, 55);
+  textSize(12);
+  text("FINAL PROJECT - COMPUTER GRAPHICS", width / 2, 560);
+  text("PROCESSING JAVA MODE", width / 2, 582);
 }
 
 void gambarPetunjuk() {
-  gambarLatarCerah();
+  gambarLatar();
 
   textAlign(CENTER, CENTER);
   fill(35, 105, 50);
   textSize(36);
-  text("CARA BERMAIN", width/2, 105);
+  text("CARA BERMAIN", width / 2, 75);
 
-  textAlign(LEFT, CENTER);
-  textSize(17);
-  fill(35, 75, 45);
-
-  text("A / D atau panah kiri / kanan : Bergerak", 250, 200);
-  text("SPASI / W / panah atas : Melompat", 250, 250);
-  text("P / ESC : Pause", 250, 300);
+  noStroke();
+  fill(255, 255, 245, 235);
+  rect(170, 110, 660, 275, 18);
 
   fill(35, 105, 50);
-  text("TUJUAN PERMAINAN", 250, 370);
+  textSize(20);
+  text("KONTROL PERMAINAN", width / 2, 140);
+
+  textAlign(LEFT, CENTER);
+  fill(35, 75, 45);
+  textSize(16);
+
+  text("A / D atau panah kiri / kanan", 210, 190);
+  text("Bergerak ke kiri dan kanan", 500, 190);
+
+  text("SPASI / W / panah atas", 210, 235);
+  text("Melompat", 500, 235);
+
+  text("P / ESC", 210, 280);
+  text("Jeda atau lanjutkan permainan", 500, 280);
+
+  text("MOUSE", 210, 325);
+  text("Memilih tombol pada menu", 500, 325);
+
+  noStroke();
+  fill(255, 255, 245, 235);
+  rect(170, 400, 660, 130, 18);
+
+  textAlign(CENTER, CENTER);
+  fill(35, 105, 50);
+  textSize(20);
+  text("TUJUAN PERMAINAN", width / 2, 423);
 
   fill(35, 75, 45);
-  text("Kumpulkan koin untuk menambah skor.", 250, 415);
-  text("Hindari duri dan jangan jatuh ke jurang.", 250, 455);
-  text("Aktifkan checkpoint agar tidak kembali jauh.", 250, 495);
-  text("Capai portal hijau untuk menyelesaikan level.", 250, 535);
+  textSize(15);
+  text("Kumpulkan koin dan hindari duri serta jurang.", width / 2, 455);
+  text("Aktifkan checkpoint dan capai portal hijau.", width / 2, 485);
+  text("Selesaikan kedua level untuk memenangkan game.", width / 2, 510);
 
-  tombol(width/2 - 110, 580, 220, 45, "KEMBALI", cyan);
+  tombol(width / 2 - 110, 565, 220, 45, "KEMBALI", cyan);
 }
 
 // ==================== LEVEL ====================
@@ -282,12 +344,12 @@ void jalankanGame() {
     periksaCheckpoint();
     periksaKemenangan();
 
-    if (player.y > height + 100) {
+    if (gameState == PLAY && player.y > height + 100) {
       kehilanganNyawa();
     }
 
     cameraX = constrain(player.x - width * 0.38,
-                        0, worldWidth - width);
+      0, worldWidth - width);
 
     for (int i = particles.size() - 1; i >= 0; i--) {
       Particle p = particles.get(i);
@@ -328,51 +390,46 @@ void jalankanGame() {
   gambarHUD();
 }
 
-void gambarLatarGame() {
-  background(120, 210, 255);
+void gambarHUD() {
   noStroke();
+  fill(255, 255, 235, 235);
+  rect(15, 15, 330, 72, 12);
 
-  // Matahari
-  fill(255, 225, 75);
-  ellipse(850 - cameraX * 0.04, 95, 72, 72);
+  fill(35, 85, 45);
+  textAlign(LEFT, CENTER);
+  textSize(16);
+  text("LEVEL " + level, 32, 37);
+  text("SKOR  " + skor, 32, 65);
 
-  // Awan
-  for (int i = 0; i < 6; i++) {
-    float x = i * 230 - (cameraX * 0.18) % 230;
-    float y = 95 + (i % 2) * 55;
+  fill(215, 55, 45);
+  text("NYAWA  " + nyawa, 190, 37);
 
-    fill(255, 255, 255, 220);
-    ellipse(x, y, 75, 28);
-    ellipse(x - 18, y + 1, 38, 25);
-    ellipse(x + 18, y - 7, 40, 32);
-  }
+  fill(180, 130, 20);
+  text("KOIN  " + jumlahKoin, 190, 65);
 
-  // Bukit berlapis
-  fill(150, 220, 125);
-  for (int i = 0; i < 8; i++) {
-    float x = i * 250 - (cameraX * 0.12) % 250;
-    ellipse(x, 500, 360, 230);
-  }
+  fill(255, 255, 245, 225);
+  rect(width - 245, 15, 230, 34, 9);
 
-  fill(105, 200, 85);
-  for (int i = 0; i < 8; i++) {
-    float x = i * 250 - (cameraX * 0.22) % 250;
-    ellipse(x + 90, 555, 370, 190);
-  }
+  fill(35, 85, 45);
+  textAlign(CENTER, CENTER);
+  textSize(12);
+  text("P / ESC : PAUSE", width - 130, 32);
 
-  // Rumput di bawah
-  fill(75, 185, 65);
-  rect(0, 585, width, 65);
+  fill(255, 255, 245, 225);
+  rect(width - 280, height - 58, 265, 43, 9);
 
-  fill(55, 160, 55);
-  for (int i = 0; i < width; i += 34) {
-    triangle(i, 590, i + 8, 575, i + 15, 590);
-  }
+  fill(35, 85, 45);
+  textSize(12);
+  text("A / D : GERAK   |   SPASI : LOMPAT",
+    width - 147, height - 36);
 }
 
 void gambarCheckpoint() {
+  float x = level == 1 ? 1690 : 2200;
+  float y = level == 1 ? 500 : 500;
+
   pushMatrix();
-  translate(1650, 500);
+  translate(x, y);
 
   stroke(115, 85, 45);
   strokeWeight(4);
@@ -408,30 +465,7 @@ void gambarPortal() {
   text("EXIT", x, y + 1);
 }
 
-void gambarHUD() {
-  noStroke();
-  fill(255, 255, 235, 235);
-  rect(15, 15, 330, 72, 12);
-
-  fill(35, 85, 45);
-  textAlign(LEFT, CENTER);
-  textSize(16);
-  text("LEVEL " + level, 32, 37);
-
-  fill(45, 145, 55);
-  text("SKOR  " + skor, 32, 65);
-
-  fill(215, 55, 45);
-  text("NYAWA  " + nyawa, 190, 37);
-
-  fill(180, 130, 20);
-  text("KOIN  " + jumlahKoin, 190, 65);
-
-  fill(35, 85, 45);
-  textAlign(RIGHT, CENTER);
-  textSize(12);
-  text("P / ESC : PAUSE", width - 22, 30);
-}
+// ==================== KOIN DAN DURI ====================
 
 void periksaKoin() {
   for (Coin c : coins) {
@@ -448,24 +482,14 @@ void periksaKoin() {
   }
 }
 
-
 void periksaDuri() {
   for (Spike s : spikes) {
-    // Titik-titik segitiga duri
-    float x1 = s.x;
-    float y1 = s.y;
-
-    float x2 = s.x + 12;
-    float y2 = s.y - 27;
-
-    float x3 = s.x + 24;
-    float y3 = s.y;
-
-    // Periksa tabrakan lingkaran bola dengan segitiga
     if (bolaMenyentuhSegitiga(
-      player.x, player.y, player.r,
-      x1, y1, x2, y2, x3, y3
-    )) {
+      player.x, player.y, player.r * 0.9,
+      s.x, s.y,
+      s.x + 12, s.y - 27,
+      s.x + 24, s.y
+      )) {
       kehilanganNyawa();
       return;
     }
@@ -478,21 +502,10 @@ boolean bolaMenyentuhSegitiga(
   float x2, float y2,
   float x3, float y3
 ) {
-  // Bola menyentuh salah satu titik sudut segitiga
-  if (dist(cx, cy, x1, y1) <= r ||
-      dist(cx, cy, x2, y2) <= r ||
-      dist(cx, cy, x3, y3) <= r) {
+  if (titikDalamSegitiga(cx, cy, x1, y1, x2, y2, x3, y3)) {
     return true;
   }
 
-  // Bola berada di dalam segitiga
-  if (titikDalamSegitiga(
-    cx, cy, x1, y1, x2, y2, x3, y3
-  )) {
-    return true;
-  }
-
-  // Periksa jarak bola ke setiap sisi segitiga
   if (jarakTitikKeGaris(cx, cy, x1, y1, x2, y2) <= r ||
       jarakTitikKeGaris(cx, cy, x2, y2, x3, y3) <= r ||
       jarakTitikKeGaris(cx, cy, x3, y3, x1, y1) <= r) {
@@ -509,13 +522,13 @@ boolean titikDalamSegitiga(
   float x3, float y3
 ) {
   float d1 = (px - x2) * (y1 - y2)
-           - (x1 - x2) * (py - y2);
+    - (x1 - x2) * (py - y2);
 
   float d2 = (px - x3) * (y2 - y3)
-           - (x2 - x3) * (py - y3);
+    - (x2 - x3) * (py - y3);
 
   float d3 = (px - x1) * (y3 - y1)
-           - (x3 - x1) * (py - y1);
+    - (x3 - x1) * (py - y1);
 
   boolean negatif = d1 < 0 || d2 < 0 || d3 < 0;
   boolean positif = d1 > 0 || d2 > 0 || d3 > 0;
@@ -530,7 +543,6 @@ float jarakTitikKeGaris(
 ) {
   float dx = x2 - x1;
   float dy = y2 - y1;
-
   float panjangKuadrat = dx * dx + dy * dy;
 
   if (panjangKuadrat == 0) {
@@ -538,7 +550,7 @@ float jarakTitikKeGaris(
   }
 
   float t = ((px - x1) * dx + (py - y1) * dy)
-          / panjangKuadrat;
+    / panjangKuadrat;
 
   t = constrain(t, 0, 1);
 
@@ -548,25 +560,21 @@ float jarakTitikKeGaris(
   return dist(px, py, titikX, titikY);
 }
 
+// ==================== CHECKPOINT DAN LEVEL ====================
+
 void periksaCheckpoint() {
-  if (level == 1 &&
-      player.x > 1650 &&
-      !checkpointAktif) {
+  float posisiCheckpoint = level == 1 ? 1690 : 2200;
+
+  if (player.x > posisiCheckpoint && !checkpointAktif) {
     checkpointAktif = true;
-    checkpointX = 1650;
+    checkpointX = posisiCheckpoint;
     skor += 250;
 
     for (int i = 0; i < 18; i++) {
-      particles.add(new Particle(1650, 500, cyan));
+      particles.add(new Particle(
+        posisiCheckpoint, 500, color(255, 220, 40)
+      ));
     }
-  }
-
-  if (level == 2 &&
-      player.x > 2200 &&
-      !checkpointAktif) {
-    checkpointAktif = true;
-    checkpointX = 2200;
-    skor += 250;
   }
 }
 
@@ -598,9 +606,10 @@ void kehilanganNyawa() {
 // ==================== TOMBOL GUI ====================
 
 void tombol(float x, float y, float w, float h,
-            String tulisan, color warna) {
+  String tulisan, color warna) {
+
   boolean hover = mouseX >= x && mouseX <= x + w &&
-                  mouseY >= y && mouseY <= y + h;
+    mouseY >= y && mouseY <= y + h;
 
   noStroke();
 
@@ -623,8 +632,10 @@ void tombol(float x, float y, float w, float h,
   fill(35, 85, 45);
   textAlign(CENTER, CENTER);
   textSize(15);
-  text(tulisan, x + w/2, y + h/2);
+  text(tulisan, x + w / 2, y + h / 2);
 }
+
+// ==================== PAUSE DAN HASIL ====================
 
 void gambarOverlayPause() {
   noStroke();
@@ -634,10 +645,10 @@ void gambarOverlayPause() {
   fill(35, 85, 45);
   textAlign(CENTER, CENTER);
   textSize(44);
-  text("PAUSED", width/2, 245);
+  text("PAUSED", width / 2, 245);
 
-  tombol(width/2 - 115, 315, 230, 52, "LANJUTKAN", cyan);
-  tombol(width/2 - 115, 385, 230, 48, "MENU UTAMA", ungu);
+  tombol(width / 2 - 115, 315, 230, 52, "LANJUTKAN", cyan);
+  tombol(width / 2 - 115, 385, 230, 48, "MENU UTAMA", ungu);
 }
 
 void gambarOverlayMenang() {
@@ -648,15 +659,15 @@ void gambarOverlayMenang() {
   fill(45, 145, 55);
   textAlign(CENTER, CENTER);
   textSize(45);
-  text("LEVEL SELESAI!", width/2, 240);
+  text("LEVEL SELESAI!", width / 2, 240);
 
   fill(35, 85, 45);
   textSize(21);
-  text("Skor akhir: " + skor, width/2, 300);
-  text("Koin terkumpul: " + jumlahKoin, width/2, 335);
+  text("Skor akhir: " + skor, width / 2, 300);
+  text("Koin terkumpul: " + jumlahKoin, width / 2, 335);
 
-  tombol(width/2 - 115, 395, 230, 52, "MAIN LAGI", cyan);
-  tombol(width/2 - 115, 465, 230, 48, "MENU UTAMA", ungu);
+  tombol(width / 2 - 115, 395, 230, 52, "MAIN LAGI", cyan);
+  tombol(width / 2 - 115, 465, 230, 48, "MENU UTAMA", ungu);
 }
 
 void gambarOverlayKalah() {
@@ -667,57 +678,61 @@ void gambarOverlayKalah() {
   fill(215, 55, 45);
   textAlign(CENTER, CENTER);
   textSize(43);
-  text("GAME OVER", width/2, 240);
+  text("GAME OVER", width / 2, 240);
 
   fill(35, 85, 45);
   textSize(20);
-  text("Skor akhir: " + skor, width/2, 300);
+  text("Skor akhir: " + skor, width / 2, 300);
 
-  tombol(width/2 - 115, 365, 230, 52, "COBA LAGI", cyan);
-  tombol(width/2 - 115, 435, 230, 48, "MENU UTAMA", ungu);
+  tombol(width / 2 - 115, 365, 230, 52, "COBA LAGI", cyan);
+  tombol(width / 2 - 115, 435, 230, 48, "MENU UTAMA", ungu);
 }
 
 // ==================== INPUT ====================
 
 void mousePressed() {
   if (gameState == MENU) {
-    if (mouseX >= width/2 - 115 &&
-        mouseX <= width/2 + 115 &&
+    if (mouseX >= width / 2 - 115 &&
+        mouseX <= width / 2 + 115 &&
         mouseY >= 390 && mouseY <= 444) {
       mulaiGame();
-    } else if (mouseX >= width/2 - 115 &&
-               mouseX <= width/2 + 115 &&
+    } else if (mouseX >= width / 2 - 115 &&
+               mouseX <= width / 2 + 115 &&
                mouseY >= 460 && mouseY <= 508) {
       gameState = HELP;
     }
 
   } else if (gameState == HELP) {
-    if (mouseX >= width/2 - 110 &&
-        mouseX <= width/2 + 110 &&
-        mouseY >= 580 && mouseY <= 625) {
+    if (mouseX >= width / 2 - 110 &&
+        mouseX <= width / 2 + 110 &&
+        mouseY >= 565 && mouseY <= 610) {
       gameState = MENU;
     }
 
   } else if (gameState == PAUSE) {
-    if (mouseX >= width/2 - 115 &&
-        mouseX <= width/2 + 115 &&
+    if (mouseX >= width / 2 - 115 &&
+        mouseX <= width / 2 + 115 &&
         mouseY >= 315 && mouseY <= 367) {
       gameState = PLAY;
-    } else if (mouseX >= width/2 - 115 &&
-               mouseX <= width/2 + 115 &&
+      resetInput();
+    } else if (mouseX >= width / 2 - 115 &&
+               mouseX <= width / 2 + 115 &&
                mouseY >= 385 && mouseY <= 433) {
       gameState = MENU;
       resetInput();
     }
 
   } else if (gameState == WIN || gameState == LOSE) {
-    if (mouseX >= width/2 - 115 &&
-        mouseX <= width/2 + 115 &&
-        mouseY >= 395 && mouseY <= 447) {
+    float yMain = gameState == WIN ? 395 : 365;
+    float yMenu = gameState == WIN ? 465 : 435;
+
+    if (mouseX >= width / 2 - 115 &&
+        mouseX <= width / 2 + 115 &&
+        mouseY >= yMain && mouseY <= yMain + 52) {
       mulaiGame();
-    } else if (mouseX >= width/2 - 115 &&
-               mouseX <= width/2 + 115 &&
-               mouseY >= 465 && mouseY <= 513) {
+    } else if (mouseX >= width / 2 - 115 &&
+               mouseX <= width / 2 + 115 &&
+               mouseY >= yMenu && mouseY <= yMenu + 48) {
       gameState = MENU;
       resetInput();
     }
@@ -725,6 +740,19 @@ void mousePressed() {
 }
 
 void keyPressed() {
+  if (key == ESC) {
+    key = 0;
+
+    if (gameState == PLAY) {
+      gameState = PAUSE;
+      resetInput();
+    } else if (gameState == PAUSE) {
+      gameState = PLAY;
+      resetInput();
+    }
+    return;
+  }
+
   if (key == 'a' || key == 'A' || keyCode == LEFT) {
     tombolKiri = true;
   }
@@ -740,11 +768,7 @@ void keyPressed() {
     }
   }
 
-  if (key == 'p' || key == 'P' || key == ESC) {
-    if (key == ESC) {
-      key = 0;
-    }
-
+  if (key == 'p' || key == 'P') {
     if (gameState == PLAY) {
       gameState = PAUSE;
       resetInput();
@@ -778,6 +802,7 @@ void resetInput() {
 
 void mulaiGame() {
   resetInput();
+
   level = 1;
   nyawa = 3;
   skor = 0;
@@ -806,7 +831,6 @@ class Player {
   }
 
   void update() {
-    // Input horizontal tidak menghalangi input lompat.
     if (tombolKiri && !tombolKanan) {
       vx = -kecepatan;
     } else if (tombolKanan && !tombolKiri) {
@@ -815,12 +839,10 @@ class Player {
       vx = 0;
     }
 
-    // Proses permintaan lompat satu kali saat tombol ditekan.
     if (permintaanLompat) {
       if (diTanah) {
         lompat();
       }
-
       permintaanLompat = false;
     }
 
@@ -835,7 +857,6 @@ class Player {
 
     diTanah = false;
 
-    // Tabrakan platform saat bola jatuh dari atas.
     for (Platform p : platforms) {
       boolean masukHorizontal =
         x + r > p.x && x - r < p.x + p.w;
@@ -869,18 +890,15 @@ class Player {
 
     noStroke();
 
-    // Bayangan bola di tanah
     fill(35, 120, 45, 35);
     ellipse(0, r + 8, r * 2.1, 8);
 
-    // Bola merah polos tanpa wajah
     fill(195, 35, 35);
     ellipse(0, 0, r * 2, r * 2);
 
     fill(235, 55, 45);
     ellipse(-2, -2, r * 1.72, r * 1.72);
 
-    // Kilau bola
     fill(255, 150, 125, 190);
     ellipse(-6, -7, 7, 7);
 
@@ -903,21 +921,18 @@ class Platform {
   void display() {
     noStroke();
 
-    // Tanah
     fill(145, 90, 45);
     rect(x, y, w, h, 3);
 
     fill(175, 115, 60);
     rect(x, y + 8, w, max(0, h - 8), 3);
 
-    // Lapisan rumput
     fill(55, 165, 55);
     rect(x, y, w, 9, 3);
 
     fill(100, 205, 70);
     rect(x, y, w, 3);
 
-    // Tekstur tanah
     stroke(125, 75, 40, 150);
     strokeWeight(2);
 
