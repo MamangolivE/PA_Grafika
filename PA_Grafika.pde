@@ -1,29 +1,24 @@
-// =====================================================
-// MODUL ANTARMUKA DAN PENGENDALI UTAMA (MAIN PROGRAM)
-// Menangani inisialisasi awal, loop utama permainan (mode continuous),
-// serta pemanggilan fungsi rendering untuk antarmuka pengguna (GUI) dan ruang 3D.
-// =====================================================
+// Main Filenya
 import processing.sound.*;
 
-// Konstanta enumerasi untuk pendefinisian status layar (State Machine)
+// STATE GAME: tiap angka mewakili satu layar/kondisi permainan.
 final int MENU = 0, PILIH = 1, HELP = 2, LOADING = 3, RULES = 4,
   PLAY = 5, PAUSE = 6, LEVEL_DONE = 7, WIN = 8, LOSE = 9;
-  
-// Batas maksimal kuantitas level yang dapat dimainkan
+// Jumlah level (Sudah diubah jadi 5).
 final int JUMLAH_LEVEL = 5;
 
-// Struktur data koleksi dinamis (ArrayList) untuk menampung entitas-entitas di dalam arena
+// Daftar objek dunia (ArrayList): platform, duri, koin, dan partikel.
 ArrayList<Platform> platforms = new ArrayList<Platform>();
 ArrayList<Spike> spikes = new ArrayList<Spike>();
 ArrayList<Coin> coins = new ArrayList<Coin>();
 ArrayList<Particle> particles = new ArrayList<Particle>();
 
-// Deklarasi instansiasi objek utama permainan
+// Objek utama: pemain, data level aktif, dan cuaca aktif.
 Player player;
 Level lv;
 EfekCuaca cuaca;
 
-// Inisialisasi variabel pengendali alur permainan
+// Variabel permainan: state, level, nyawa, skor, koin, dan loading.
 int gameState = MENU;
 int stateSebelumRules = PLAY;
 int level = 1;
@@ -33,38 +28,37 @@ int jumlahKoin = 0;
 int skorAwalLevel = 0;
 int koinAwalLevel = 0;
 int loadTimer = 0;
-
-// Penetapan durasi layar pemuatan (loading) dalam hitungan frame
+// Lama loading dalam frame.
 final int DURASI_LOADING = 150;
 boolean levelDibuat = false;
 boolean audioSiap = false;
 
-// Deklarasi variabel pendukung kalkulasi grafis
+// Posisi kamera, waktu animasi, kilatan petir, dan animasi popup.
 float cameraX = 0;
 float checkpointX = 80;
 float waktuAnimasi = 0;
 float kilat = 0;
 float popupAnim = 0;
 
-// Variabel berjenis boolean untuk mengevaluasi status input dari perangkat eksternal
+// Status tombol keyboard dan checkpoint.
 boolean tombolKiri = false;
 boolean tombolKanan = false;
 boolean tombolLompat = false;
 boolean permintaanLompat = false;
 boolean checkpointAktif = false;
 
-// Penetapan palet warna dasar antarmuka
+// Warna tema yang dipakai di banyak tempat.
 color merah = color(235, 55, 45);
 color cyan = color(70, 190, 65);
 color ungu = color(60, 145, 235);
 color gelap = color(35, 85, 45);
 
-// Deklarasi aset media visual (latar belakang gambar, overlay, dan tipografi teks)
+// Gambar background (data/image/bg1.png ... bg4.png), vinyet goa, dan font.
 PImage[] imgBg = new PImage[JUMLAH_LEVEL + 1];
 PImage vinyet;
 PFont fontUtama;
 
-// Prosedur inisialisasi lingkungan program yang dieksekusi secara otomatis saat program dijalankan
+// Fungsi setup: Dipanggil sekali saat program mulai: atur jendela P3D, font, muat gambar background, buat tombol, muat suara, putar musik menu.
 void setup() {
   size(1000, 650, P3D);
   smooth(4);
@@ -74,7 +68,7 @@ void setup() {
   fontUtama = createFont("SansSerif.bold", 32);
   textFont(fontUtama);
 
-  // Proses iterasi untuk memuat berkas gambar latar dari ruang penyimpanan (direktori)
+  // Perulangan for: muat background (Sudah ditambah background dummy untuk level 5)
   String[] namaBg = {"padang.png", "salju.png", "es.png", "goa.png", "goa.png"};
   for (int i = 1; i <= JUMLAH_LEVEL; i++) {
     imgBg[i] = muatGambar(namaBg[i - 1]);
@@ -88,62 +82,39 @@ void setup() {
   lv = infoLevel(1);
 }
 
-// Prosedur pembaruan posisi koordinat antarmuka (Responsive UI)
-// Diperlukan agar tata letak elemen tetap terpusat pada resolusi layar penuh (fullscreen)
+// Fungsi updatePosisiUI: Menjaga posisi semua tombol dan slider tetap di tengah layar jika di-fullscreen.
 void updatePosisiUI() {
-  float tengahX = width / 2.0;
-  float tengahY = height / 2.0;
+  btnMulai.x = width / 2 - 115;
+  btnPilih.x = width / 2 - 115;
+  btnPetunjuk.x = width / 2 - 115;
+  btnKembali.x = width / 2 - 110;
 
-  btnMulai.x = tengahX - 115;
-  btnMulai.y = tengahY + 40;
+  btnLanjut.x = width / 2 - 115;
+  btnAturan.x = width / 2 - 115;
+  btnMenuPause.x = width / 2 - 115;
 
-  btnPilih.x = tengahX - 115;
-  btnPilih.y = tengahY + 102;
+  btnMulaiAturan.x = width / 2 - 100;
+  // Perbaikan posisi Y tombol Mulai agar dinamis mengikuti tinggi panel saat fullscreen
+  btnMulaiAturan.y = (height - 450) / 2 + 386; 
 
-  btnPetunjuk.x = tengahX - 115;
-  btnPetunjuk.y = tengahY + 160;
+  btnAksi1.x = width / 2 - 115;
+  btnAksi2.x = width / 2 - 115;
 
-  btnKembali.x = tengahX - 110;
-  btnKembali.y = height - 60;
-
-  btnLanjut.x = tengahX - 115;
-  btnLanjut.y = tengahY - 40;
-
-  btnAturan.x = tengahX - 115;
-  btnAturan.y = tengahY + 22;
-
-  btnMenuPause.x = tengahX - 115;
-  btnMenuPause.y = tengahY + 80;
-
-  btnMulaiAturan.x = tengahX - 100;
-  btnMulaiAturan.y = (height - 450) / 2.0 + 386;
-
-  btnAksi1.x = tengahX - 115;
-  btnAksi1.y = tengahY + 70;
-
-  btnAksi2.x = tengahX - 115;
-  btnAksi2.y = tengahY + 132;
-
-  sliderMenu.x = tengahX - 90;
-  sliderMenu.y = height - 50;
-
-  sliderPause.x = tengahX - 100;
-  sliderPause.y = tengahY + 170;
+  sliderMenu.x = width / 2 - 90;
+  sliderPause.x = width / 2 - 100;
 }
 
-// Prosedur iterasi utama yang mengatur penyegaran layar berkelanjutan (continuous mode)
+// Fungsi draw: Dipanggil terus menerus (mode continuous, 60x/detik). Memilih layar yang digambar sesuai gameState.
 void draw() {
-  updatePosisiUI(); 
+  updatePosisiUI(); // Panggil update posisi agar menu selalu rapi di tengah
 
   waktuAnimasi += 0.04;
-  
-  // Membersihkan ruang frame buffer sebelumnya untuk menghindari tumpang tindih gambar
+  // Bersihkan layar dan depth buffer.
   background(0);
-  
-  // Penonaktifan evaluasi kedalaman objek agar elemen GUI 2D dirender pada lapisan terdepan
+  // Matikan depth test agar gambar 2D (latar, HUD) tidak saling menutupi.
   hint(DISABLE_DEPTH_TEST);
 
-  // Mekanisme transisi grafis berdasarkan siklus state aplikasi
+  // switch: pilih layar sesuai state game.
   switch (gameState) {
   case MENU:
     gambarMenu();
@@ -183,15 +154,15 @@ void draw() {
   }
 }
 
-// ----- CLASS EfekCuaca: Implementasi partikel visual berskala untuk efek lingkungan (hujan, salju, es, tetesan stalaktit) -----
+// ----- CLASS EfekCuaca: partikel cuaca layar (hujan, salju, serpihan es, tetesan goa) dengan array posisi/ukuran. -----
 class EfekCuaca {
   int tipe, n;
   float[] px, py, ps;
 
-  // Konstruktor inisialisasi volume partikel serta distribusi koordinat awal secara pseudorandom
+  // Konstruktor: tentukan jumlah partikel sesuai tipe cuaca lalu sebar posisi awal secara acak.
   EfekCuaca(int tipe) {
     this.tipe = tipe;
-    
+    // switch: tentukan jumlah partikel menurut tipe cuaca.
     switch (tipe) {
     case C_HUJAN:
       n = 220;
@@ -209,12 +180,12 @@ class EfekCuaca {
       n = 0;
       break;
     }
-    
     px = new float[n];
     py = new float[n];
     ps = new float[n];
 
     int i = 0;
+    // Perulangan while: isi posisi acak setiap partikel.
     while (i < n) {
       px[i] = random(width);
       py[i] = random(height);
@@ -223,9 +194,11 @@ class EfekCuaca {
     }
   }
 
-  // Kalkulasi perpindahan koordinat partikel; melakukan instansiasi ulang posisi apabila melampaui batas layar
+  // Menggerakkan semua partikel cuaca; partikel yang keluar layar dipindah ke sisi seberang.
   void update() {
+    // Perulangan for: gerakkan setiap partikel.
     for (int i = 0; i < n; i++) {
+      // switch: arah dan kecepatan gerak tiap tipe cuaca.
       switch (tipe) {
       case C_HUJAN:
         py[i] += 15 * ps[i];
@@ -253,8 +226,9 @@ class EfekCuaca {
     }
   }
 
-  // Rendering elemen geometri 2D berdasarkan parameter klasifikasi cuaca
+  // Menggambar cuaca: garis untuk hujan, lingkaran untuk salju/es, lonjong untuk tetesan goa.
   void display() {
+    // switch: cara menggambar tiap tipe cuaca.
     switch (tipe) {
     case C_HUJAN:
       noStroke();
@@ -262,6 +236,7 @@ class EfekCuaca {
       rect(0, 0, width, height);
       stroke(200, 220, 255, 140);
       strokeWeight(1.5);
+      // Perulangan for: gambar garis hujan.
       for (int i = 0; i < n; i++) {
         line(px[i], py[i], px[i] + 3.2 * ps[i], py[i] - 16 * ps[i]);
       }
@@ -271,6 +246,7 @@ class EfekCuaca {
     case C_SALJU:
       noStroke();
       fill(255, 255, 255, 230);
+      // Perulangan for: gambar butir salju.
       for (int i = 0; i < n; i++) {
         ellipse(px[i], py[i], 3.5 * ps[i] + 1, 3.5 * ps[i] + 1);
       }
@@ -279,11 +255,13 @@ class EfekCuaca {
     case C_ES:
       noStroke();
       fill(220, 245, 255, 200);
+      // Perulangan for: gambar butir es.
       for (int i = 0; i < n; i++) {
         ellipse(px[i], py[i], 3 * ps[i] + 1, 3 * ps[i] + 1);
       }
       stroke(255, 255, 255, 220);
       strokeWeight(1);
+      // Perulangan for: gambar kilau silang pada es.
       for (int i = 0; i < n; i++) {
         if ((frameCount + i * 7) % 50 < 6) {
           line(px[i] - 5, py[i], px[i] + 5, py[i]);
@@ -296,6 +274,7 @@ class EfekCuaca {
     case C_GOA:
       noStroke();
       fill(130, 190, 255, 170);
+      // Perulangan for: gambar tetesan goa.
       for (int i = 0; i < n; i++) {
         ellipse(px[i], py[i], 3, 9);
       }
@@ -304,15 +283,16 @@ class EfekCuaca {
   }
 }
 
-// Kalkulasi aritmetika modulo aman untuk menggulung posisi koordinat layar
+// Fungsi wrap: Modulo yang aman untuk angka negatif; dipakai untuk menggulung posisi awan/background.
 float wrap(float v, float m) {
   return ((v % m) + m) % m;
 }
 
-// Prosedur interpolasi gradien warna dari parameter warna atas ke warna bawah
+// Fungsi gradien: Mengisi layar dengan gradasi warna vertikal (cadangan jika gambar background tidak ada).
 void gradien(color a, color b) {
   noStroke();
   int yy = 0;
+  // Perulangan while: gambar strip warna dari atas ke bawah.
   while (yy < height) {
     fill(lerpColor(a, b, yy / (float) height));
     rect(0, yy, width, 6);
@@ -320,12 +300,13 @@ void gradien(color a, color b) {
   }
 }
 
-// Pemanggilan komposisi geometri elips untuk merepresentasikan formasi awan
+// Fungsi awan: Menggambar awan bergerak dari beberapa ellipse (bentuk dasar).
 void awan(float g, color c, float yBase, int jumlah) {
   noStroke();
   fill(c);
   float lebarWrap = width + 300;
   float jarak = lebarWrap / jumlah;
+  // Perulangan for: gambar tiap awan.
   for (int i = 0; i < jumlah; i++) {
     float x = wrap(i * jarak - g - waktuAnimasi * 6, lebarWrap) - 150;
     float y = yBase + (i % 3) * 38;
@@ -335,7 +316,7 @@ void awan(float g, color c, float yBase, int jumlah) {
   }
 }
 
-// Eksekusi pembangunan kontur wilayah bukit melalui operasi matematika kurva Bezier
+// Fungsi bukit: Menggambar bukit bergelombang memakai kurva bezier (Modul 2).
 void bukit(float g, float yBase, float tinggi, float seg, color c) {
   fill(c);
   noStroke();
@@ -346,6 +327,7 @@ void bukit(float g, float yBase, float tinggi, float seg, color c) {
   beginShape();
   vertex(x0, height);
   vertex(x0, yBase);
+  // Perulangan for: tambahkan satu gelombang bezier per segmen.
   for (int i = 0; i < n; i++) {
     int m = (i0 + i) % 3;
     float t = tinggi * (m == 0 ? 1.0 : (m == 1 ? 0.65 : 0.85));
@@ -356,7 +338,7 @@ void bukit(float g, float yBase, float tinggi, float seg, color c) {
   endShape(CLOSE);
 }
 
-// Implementasi segi empat kustom untuk objek kristal
+// Fungsi kristal: Menggambar kristal dari quad dan triangle.
 void kristal(float x, float y, float s, color c) {
   noStroke();
   fill(c);
@@ -365,7 +347,7 @@ void kristal(float x, float y, float s, color c) {
   triangle(x, y - s * 1.6, x + s * 0.8, y, x, y);
 }
 
-// Prosedur pemanggilan logika permainan terpusat (Physics, Overlay, dan HUD)
+// Fungsi jalankanGame: Satu frame gameplay: update (jika PLAY), gambar latar, dunia 3D, vinyet goa, cuaca, efek petir, dan HUD.
 void jalankanGame() {
   if (gameState == PLAY) {
     updateGame();
@@ -383,7 +365,6 @@ void jalankanGame() {
 
   cuaca.display();
 
-  // Pengkondisian untuk penambahan lapisan transparansi saat memicu sambaran kilat
   if (kilat > 0.02) {
     noStroke();
     fill(255, 255, 255, 150 * kilat);
@@ -393,8 +374,9 @@ void jalankanGame() {
   gambarHUD();
 }
 
-// Modul seleksi logika grafis latar berdasarkan identifier level
+// Fungsi gambarLatarGame: Memilih fungsi latar sesuai nomor level.
 void gambarLatarGame() {
+  // switch: pilih latar sesuai level.
   switch (level) {
   case 1:
     latarLevel1();
@@ -409,59 +391,59 @@ void gambarLatarGame() {
     latarLevel4();
     break;
   default:
-    latarLevel5(); 
+    latarLevel5(); // Arahkan defaultnya ke level 5
     break;
   }
 }
 
-// Prosedur untuk membangkitkan struktur grafis 3D (Z-Index rendering)
+// Fungsi gambarDunia: Menggambar dunia 3D: platform (box) dengan cahaya, lalu duri, koin, bendera, portal, bola, dan partikel tanpa cahaya.
 void gambarDunia() {
-  // Aktivasi kalkulasi depth/Z-Buffer khusus objek dimensi ketiga
+  // Nyalakan depth test untuk objek 3D.
   hint(ENABLE_DEPTH_TEST);
   pushMatrix();
-  
-  // Penerapan skema matriks translasi yang diikat ke variabel posisi kamera virtual
+  // Geser dunia ke kiri sebesar posisi kamera (kamera mengikuti pemain).
   translate(-cameraX, 0);
 
-  // Implementasi shader/pencahayaan poligon 3D
+  // Pasang lampu untuk objek 3D.
   aturCahaya();
 
-  // Polimorfisme pemanggilan metode display() pada setiap elemen himpunan platforms
+  // Perulangan for-each: gambar semua platform.
   for (Platform p : platforms) {
     p.display();
   }
-  
-  // Penonaktifan properti cahaya agar material sisa yang akan dirender mengadopsi pewarnaan flat
+  // Matikan lampu: objek berikutnya berwarna datar.
   noLights();
 
+  // Perulangan for-each: gambar semua duri.
   for (Spike s : spikes) {
     s.display();
   }
 
   pushMatrix();
-  // Pemindahan sumbu ordinat Z ke garis depan untuk memastikan geometri koin tidak mengalami oklusi visual
+  // Geser ke depan platform (sumbu z) agar objek 2D tidak tertutup box.
   translate(0, 0, 40);
+  // Perulangan for-each: gambar semua koin.
   for (Coin c : coins) {
     c.display();
   }
   gambarCheckpoint();
   gambarPortal();
   player.display();
-  
+  // Perulangan for-each: gambar semua partikel.
   for (Particle p : particles) {
     p.display();
   }
   popMatrix();
 
   popMatrix();
-  
-  // Dekonfigurasi fungsi Depth Test saat objek 3D usai di-render
+  // Matikan depth test agar gambar 2D (latar, HUD) tidak saling menutupi.
   hint(DISABLE_DEPTH_TEST);
 }
 
-// Konfigurasi sistem pencahayaan ruang geometris menggunakan lampu direksional maupun titik sorot lokal
+// Fungsi aturCahaya: Mengatur pencahayaan 3D (Modul 6): goa memakai pointLight di bola, level lain memakai directionalLight.
 void aturCahaya() {
   if (lv.gelap) {
+
     ambientLight(red(lv.cAmbient), green(lv.cAmbient), blue(lv.cAmbient));
     lightFalloff(0.55, 0.0, 0.000035);
     pointLight(255, 205, 140, player.x, player.y - 15, 150);
@@ -472,11 +454,13 @@ void aturCahaya() {
   }
 }
 
-// Kalkulasi manipulasi nilai matriks piksel gambar ARGB untuk efek vinyet sudut (radius kegelapan)
+// Fungsi buatVinyet: Membuat gambar gradasi gelap di tepi (alpha) untuk efek senter di goa.
 PImage buatVinyet(int w, int h) {
   PImage im = createImage(w, h, ARGB);
   im.loadPixels();
+  // Perulangan for: setiap baris piksel.
   for (int y = 0; y < h; y++) {
+    // Perulangan for: setiap kolom piksel; alpha makin gelap menjauhi pusat.
     for (int x = 0; x < w; x++) {
       float d = dist(x, y, w / 2.0, h / 2.0) / (w / 2.0);
       float a = constrain(map(d, 0.18, 0.9, 0, 235), 0, 235);
@@ -487,7 +471,7 @@ PImage buatVinyet(int w, int h) {
   return im;
 }
 
-// Prosedur memproyeksikan vinyet berpusat pada koordinat aktual pemain
+// Fungsi gambarVinyet: Menempel gambar vinyet di posisi bola pada layar.
 void gambarVinyet() {
   float sx = player.x - cameraX;
   float sy = player.y;
@@ -498,7 +482,7 @@ void gambarVinyet() {
   imageMode(CORNER);
 }
 
-// Konstruksi model hati menggunakan pemanggilan geometri kurva
+// Fungsi hati: Menggambar ikon hati (nyawa) memakai bezierVertex.
 void hati(float x, float y, float s) {
   beginShape();
   vertex(x, y + s * 0.6);
@@ -507,7 +491,7 @@ void hati(float x, float y, float s) {
   endShape(CLOSE);
 }
 
-// Merender panel tampilan informasi tambahan bagi pemain (Heads-Up Display)
+// Fungsi gambarHUD: Menggambar HUD: nama level, hati nyawa, skor, koin, dan petunjuk tombol.
 void gambarHUD() {
   noStroke();
   fill(255, 255, 235, 235);
@@ -518,7 +502,7 @@ void gambarHUD() {
   textSize(14);
   text("LEVEL " + level + " - " + lv.nama, 30, 33);
 
-  // Proses iterasi dalam menampilkan sisa nyawa aktif
+  // Perulangan for: gambar 3 hati; terisi jika nyawa masih ada.
   for (int i = 0; i < 3; i++) {
     if (i < nyawa) fill(225, 50, 55);
     else fill(190, 190, 180);
@@ -544,7 +528,7 @@ void gambarHUD() {
   text("A / D : GERAK   |   SPASI : LOMPAT", width - 147, height - 36);
 }
 
-// Pembangunan properti fisik objek bendera checkpoint
+// Fungsi gambarCheckpoint: Menggambar tiang dan bendera checkpoint yang berkibar.
 void gambarCheckpoint() {
   float x = lv.cpX;
   float y = lv.cpY;
@@ -556,7 +540,6 @@ void gambarCheckpoint() {
   box(6, 60, 6);
   popMatrix();
 
-  // Pengaturan fluktuasi sudut berkibarnya bendera menggunakan besaran gelombang periodik
   float y0 = y - 58;
   float k = sin(waktuAnimasi * 4) * 5;
   fill(checkpointAktif ? color(255, 220, 40) : color(230, 70, 55));
@@ -567,7 +550,7 @@ void gambarCheckpoint() {
   endShape(CLOSE);
 }
 
-// Implementasi animasi geometri statis (cincin perantara) untuk merepresentasikan gerbang penyelesaian 
+// Fungsi gambarPortal: Menggambar portal EXIT dari cincin yang berputar (rotateY).
 void gambarPortal() {
   float x = lv.lebar - 100;
   float y = lv.exitY;
@@ -580,6 +563,7 @@ void gambarPortal() {
 
   noFill();
   strokeWeight(4);
+  // Perulangan for: gambar 4 cincin dengan rotasi berbeda.
   for (int i = 0; i < 4; i++) {
     pushMatrix();
     rotateY(waktuAnimasi * 1.5 + i * HALF_PI / 2);
@@ -595,12 +579,13 @@ void gambarPortal() {
   popMatrix();
 }
 
-// ----- CLASS Tombol: Implementasi entitas GUI dengan sistem deteksi persilangan koordinat pointer -----
+// ----- CLASS Tombol: tombol GUI (posisi, label, warna) dengan deteksi hover mouse (Modul 4). -----
 class Tombol {
   float x, y, w, h;
   String label;
   color warna;
 
+  // Konstruktor Tombol: simpan posisi, ukuran, label, dan warna.
   Tombol(float x, float y, float w, float h, String label, color warna) {
     this.x = x;
     this.y = y;
@@ -610,12 +595,12 @@ class Tombol {
     this.warna = warna;
   }
 
-  // Mengembalikan luaran logika boolean positif apabila irisan kursor terdeteksi (hover mechanic)
+  // Mengembalikan true jika kursor mouse berada di dalam area tombol.
   boolean hover() {
     return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
   }
 
-  // Rendering tombol dengan integrasi indikator seleksi warna sekunder
+  // Menggambar tombol; saat hover warnanya menyala dan ada efek glow.
   void display() {
     boolean hv = hover();
     noStroke();
@@ -641,23 +626,24 @@ class Tombol {
   }
 }
 
-// ----- CLASS GeserVolume: Implementasi slider parameter audio yang diikat ke posisi klik-tarik kursor -----
+// ----- CLASS GeserVolume: slider untuk mengatur volume suara dengan mouse. -----
 class GeserVolume {
   float x, y, w;
   boolean drag = false;
 
+  // Konstruktor slider: posisi dan panjang track.
   GeserVolume(float x, float y, float w) {
     this.x = x;
     this.y = y;
     this.w = w;
   }
 
-  // Evaluasi bounding box untuk mendeteksi intensi modifikasi kontrol volume
+  // True jika mouse berada di area slider.
   boolean kena() {
     return mouseX >= x - 12 && mouseX <= x + w + 12 && mouseY >= y - 14 && mouseY <= y + 14;
   }
 
-  // Rutin pemrosesan awal penekanan slider
+  // Mulai menggeser slider saat mouse ditekan di atasnya.
   void tekan() {
     if (kena()) {
       drag = true;
@@ -665,13 +651,13 @@ class GeserVolume {
     }
   }
 
-  // Menyesuaikan rasio interval koordinat tuas yang dipetakan menjadi faktor amplitude frekuensi
+  // Mengubah nilai volume sesuai posisi mouse (0 sampai 1) lalu menerapkannya.
   void ubah() {
     volume = constrain((mouseX - x) / w, 0, 1);
     terapkanVolume();
   }
 
-  // Rendering elemen latar panjang dan bulatan penanda volume
+  // Menggambar teks volume, track, bagian terisi, dan tombol geser.
   void display() {
     noStroke();
     fill(35, 85, 45);
@@ -691,13 +677,14 @@ class GeserVolume {
   }
 }
 
-// Deklarasi alokasi kelas instansiasi antarmuka pendukung
+// Objek GUI: tombol dan slider volume.
 Tombol btnMulai, btnPilih, btnPetunjuk, btnKembali;
 Tombol btnLanjut, btnAturan, btnMenuPause;
+// Objek GUI: tombol dan slider volume.
 Tombol btnMulaiAturan, btnAksi1, btnAksi2;
 GeserVolume sliderMenu, sliderPause;
 
-// Melakukan passing parameter dasar pada kelas tombol; modifikasi letak absolut akan ditangani oleh updatePosisiUI()
+// Fungsi buatTombol: Membuat semua objek Tombol dan slider dengan posisi awal. (Posisinya akan diupdate dinamis oleh updatePosisiUI)
 void buatTombol() {
   btnMulai = new Tombol(width / 2 - 115, 365, 230, 50, "MULAI BERMAIN", cyan);
   btnPilih = new Tombol(width / 2 - 115, 427, 230, 46, "PILIH LEVEL", ungu);
@@ -716,7 +703,7 @@ void buatTombol() {
   sliderPause = new GeserVolume(width / 2 - 100, 495, 200);
 }
 
-// Menjalankan efek interpolasi pada matriks skala secara bertahap saat antarmuka popup dipanggil
+// Fungsi mulaiTransformPopup: Menyiapkan popup: layar digelapkan dan popup di-scale membesar (animasi) memakai transformasi.
 void mulaiTransformPopup() {
   popupAnim = lerp(popupAnim, 1, 0.2);
   noStroke();
@@ -728,7 +715,7 @@ void mulaiTransformPopup() {
   translate(-width / 2, -height / 2);
 }
 
-// Pembuatan struktur arsitektur panel pelapis latar (backdrop window)
+// Fungsi panel: Menggambar panel popup (bayangan, kotak putih, header berwarna, judul).
 void panel(float x, float y, float w, float h, String judul, color aksen) {
   noStroke();
   fill(0, 0, 0, 60);
@@ -743,16 +730,15 @@ void panel(float x, float y, float w, float h, String judul, color aksen) {
   text(judul, x + w / 2, y + 27);
 }
 
-// Render representasi ringkas dari tingkat kesulitan level ke dalam wujud grafis dua dimensi
+// Fungsi gambarBanner: Menggambar banner mini level dari bentuk dasar (tanpa gambar).
 void gambarBanner(int idx, float x, float y, float w, float h) {
   Level L = infoLevel(constrain(idx, 1, JUMLAH_LEVEL));
   noStroke();
-  
+  // Perulangan for: gradasi langit per 4 piksel.
   for (int i = 0; i < h; i += 4) {
     fill(lerpColor(L.langitA, L.langitB, i / h));
     rect(x, y + i, w, 4);
   }
-  
   fill(L.cTanah);
   rect(x, y + h * 0.78, w, h * 0.22);
   fill(L.cAtas);
@@ -762,12 +748,11 @@ void gambarBanner(int idx, float x, float y, float w, float h) {
   fill(L.cAtas);
   rect(x + w * 0.62, y + h * 0.6, w * 0.25, h * 0.03);
   fill(240, 90, 70);
-  
+  // Perulangan for: gambar 3 duri kecil.
   for (int i = 0; i < 3; i++) {
     float sx = x + w * 0.12 + i * 14;
     triangle(sx, y + h * 0.78, sx + 7, y + h * 0.78 - 16, sx + 14, y + h * 0.78);
   }
-  
   fill(255, 205, 35);
   ellipse(x + w * 0.74, y + h * 0.5, 14, 14);
   bolaHias(x + w * 0.4, y + h * 0.78 - 16, 16);
@@ -778,10 +763,10 @@ void gambarBanner(int idx, float x, float y, float w, float h) {
   noStroke();
 }
 
-// Integrasi rendering teks dan tombol untuk mencetak pedoman informasi aturan level saat ini
+// Fungsi gambarPopupAturan: Popup aturan level: misi, daftar aturan, dan tombol mulai.
 void gambarPopupAturan() {
   mulaiTransformPopup();
-  float w = 660, h = 450, x = (width - w) / 2.0, y = (height - h) / 2.0;
+  float w = 660, h = 450, x = (width - w) / 2, y = (height - h) / 2;
   panel(x, y, w, h, "LEVEL " + level + "  -  " + lv.nama, lv.cAtas == color(245, 250, 255) ? ungu : darker(lv.cAtas));
 
   gambarBanner(level, x + 28, y + 74, 220, 124);
@@ -799,7 +784,7 @@ void gambarPopupAturan() {
   text("ATURAN", x + 28, y + 216);
   textSize(14);
   fill(50, 90, 60);
-  
+  // Perulangan for: tampilkan setiap baris aturan level.
   for (int i = 0; i < lv.aturan.length; i++) {
     text("-  " + lv.aturan[i], x + 28, y + 242 + i * 28, w - 56, 28);
   }
@@ -807,24 +792,22 @@ void gambarPopupAturan() {
   fill(110, 130, 110);
   textAlign(CENTER, CENTER);
   textSize(12);
-  text("A / D gerak  |  SPASI lompat  |  P pause  |  M suara  |  H buka aturan", x + w / 2.0, y + h - 80);
+  text("A / D gerak  |  SPASI lompat  |  P pause  |  M suara  |  H buka aturan", x + w / 2, y + h - 80);
 
   btnMulaiAturan.label = (stateSebelumRules == PAUSE) ? "KEMBALI" : "MULAI";
   btnMulaiAturan.display();
   popMatrix();
 }
 
-// Menghasilkan keluaran matriks warna baru dengan nilai intensitas kecerahan yang direduksi
+// Fungsi darker: Mengembalikan versi lebih gelap dari sebuah warna.
 color darker(color c) {
   return color(red(c) * 0.6, green(c) * 0.6, blue(c) * 0.6);
 }
 
-// Menampilkan popup penghentian layar sementara (jeda)
+// Fungsi gambarOverlayPause: Popup pause: tombol lanjut, aturan, menu utama, dan slider volume.
 void gambarOverlayPause() {
   mulaiTransformPopup();
-  float tengahX = width / 2.0;
-  float tengahY = height / 2.0;
-  panel(tengahX - 170, tengahY - 170, 340, 340, "PAUSE", ungu);
+  panel(width / 2 - 170, 190, 340, 340, "PAUSE", ungu);
   btnLanjut.display();
   btnAturan.display();
   btnMenuPause.display();
@@ -832,75 +815,69 @@ void gambarOverlayPause() {
   popMatrix();
 }
 
-// Mencetak data pasca-eksekusi mengenai statistik variabel internal usai menyelesaikan sebuah level
+// Fungsi gambarPopupLevelSelesai: Popup level selesai: statistik level dan tombol level berikutnya.
 void gambarPopupLevelSelesai() {
   mulaiTransformPopup();
-  float tengahX = width / 2.0;
-  float tengahY = height / 2.0;
-  panel(tengahX - 200, tengahY - 195, 400, 400, "LEVEL " + level + " SELESAI!", color(45, 160, 60));
+  panel(width / 2 - 200, 130, 400, 400, "LEVEL " + level + " SELESAI!", color(45, 160, 60));
   fill(35, 85, 45);
   textAlign(CENTER, CENTER);
   textSize(18);
-  text(lv.nama, tengahX, tengahY - 110);
+  text(lv.nama, width / 2, 215);
   textSize(17);
-  text("Koin level ini : " + (jumlahKoin - koinAwalLevel), tengahX, tengahY - 70);
-  text("Bonus selesai : +500", tengahX, tengahY - 40);
-  text("Nyawa tersisa : " + nyawa, tengahX, tengahY - 10);
+  text("Koin level ini : " + (jumlahKoin - koinAwalLevel), width / 2, 255);
+  text("Bonus selesai : +500", width / 2, 285);
+  text("Nyawa tersisa : " + nyawa, width / 2, 315);
   fill(180, 130, 20);
   textSize(22);
-  text("SKOR  " + skor, tengahX, tengahY + 30);
+  text("SKOR  " + skor, width / 2, 355);
   btnAksi1.label = "LEVEL BERIKUTNYA";
   btnAksi1.display();
   btnAksi2.display();
   popMatrix();
 }
 
-// Menampilkan indikator akhir perangkat lunak ketika variabel jumlah level maksimum telah terlampaui
+// Fungsi gambarPopupMenang: Popup tamat game: skor akhir dan tombol main lagi.
 void gambarPopupMenang() {
   mulaiTransformPopup();
-  float tengahX = width / 2.0;
-  float tengahY = height / 2.0;
-  panel(tengahX - 220, tengahY - 205, 440, 420, "SELAMAT! BOUNCE TAMAT", color(230, 160, 20));
+  panel(width / 2 - 220, 120, 440, 420, "SELAMAT! BOUNCE TAMAT", color(230, 160, 20));
   fill(35, 85, 45);
   textAlign(CENTER, CENTER);
   textSize(17);
-  text("Anda telah menyelesaikan seluruh " + JUMLAH_LEVEL + " level:", tengahX, tengahY - 115);
-  text("Padang Hujan, Salju, Istana Es,", tengahX, tengahY - 87);
-  text("Goa Kristal, dan Kawah Lava.", tengahX, tengahY - 63);
-  text("Total koin : " + jumlahKoin, tengahX, tengahY - 20);
+  text("Kamu menyelesaikan semua " + JUMLAH_LEVEL + " level:", width / 2, 210);
+  text("Padang Hujan, Salju, Istana Es,", width / 2, 238);
+  text("Goa Kristal, dan Kawah Lava.", width / 2, 262);
+  text("Total koin : " + jumlahKoin, width / 2, 305);
   fill(180, 130, 20);
   textSize(24);
-  text("SKOR AKHIR  " + skor, tengahX, tengahY + 20);
+  text("SKOR AKHIR  " + skor, width / 2, 345);
   btnAksi1.label = "MAIN LAGI";
   btnAksi1.display();
   btnAksi2.display();
   popMatrix();
 }
 
-// Menampilkan pesan umpan balik atas kekalahan dan opsi instansiasi pengulangan state
+// Fungsi gambarPopupKalah: Popup game over: skor dan tombol coba lagi.
 void gambarPopupKalah() {
   mulaiTransformPopup();
-  float tengahX = width / 2.0;
-  float tengahY = height / 2.0;
-  panel(tengahX - 200, tengahY - 175, 400, 360, "GAME OVER", color(215, 55, 45));
+  panel(width / 2 - 200, 150, 400, 360, "GAME OVER", color(215, 55, 45));
   fill(35, 85, 45);
   textAlign(CENTER, CENTER);
   textSize(18);
-  text("Nyawa terkuras habis di level " + level + " - " + lv.nama, tengahX, tengahY - 90);
+  text("Nyawa habis di level " + level + " - " + lv.nama, width / 2, 235);
   textSize(21);
-  text("Perolehan Skor : " + skor, tengahX, tengahY - 40);
+  text("Skor : " + skor, width / 2, 285);
   btnAksi1.label = "COBA LAGI";
   btnAksi1.display();
   btnAksi2.display();
   popMatrix();
 }
 
-// Memuat sumber grafika yang akan digunakan sebagai latar antarmuka menu
+// Fungsi latarMenu: Latar layar menu memakai gambar background yang bergulir.
 void latarMenu() {
   gambarBg(0, waktuAnimasi * 25, color(100, 180, 255), color(215, 240, 255));
 }
 
-// Pembentukan prototipe entitas bola untuk tujuan hiasan elemen antarmuka statis
+// Fungsi bolaHias: Menggambar bola merah dari ellipse (dipakai menu, banner, loading).
 void bolaHias(float x, float y, float r) {
   noStroke();
   fill(0, 0, 0, 40);
@@ -913,28 +890,27 @@ void bolaHias(float x, float y, float r) {
   ellipse(x - r * 0.35, y - r * 0.4, r * 0.3, r * 0.3);
 }
 
-// Prosedur pemanggilan blok rendering untuk layar orientasi awal permainan
+// Fungsi gambarMenu: Layar menu utama: bola memantul, judul, dan tombol.
 void gambarMenu() {
   latarMenu();
-  float tengahX = width / 2.0;
-  float tengahY = height / 2.0;
 
+  // Bola hias berjalan melintas layar, memantul dengan abs(sin).
   float bx = wrap(waktuAnimasi * 70, width + 100) - 50;
-  float by = height - 60 - abs(sin(waktuAnimasi * 3)) * 140;
+  float by = 590 - abs(sin(waktuAnimasi * 3)) * 140;
   bolaHias(bx, by, 22);
 
-  float ly = tengahY - 135 + sin(waktuAnimasi * 2) * 5;
+  float ly = 190 + sin(waktuAnimasi * 2) * 5;
   textAlign(CENTER, CENTER);
   textSize(76);
   fill(20, 70, 30);
-  text("BOUNCE", tengahX + 4, ly + 5);
+  text("BOUNCE", width / 2 + 4, ly + 5);
   fill(60, 185, 70);
-  text("BOUNCE", tengahX, ly);
+  text("BOUNCE", width / 2, ly);
 
   textAlign(CENTER, CENTER);
   fill(35, 110, 55);
   textSize(18);
-  text("PETUALANGAN 5 DUNIA", tengahX, tengahY - 13);
+  text("PETUALANGAN 5 DUNIA", width / 2, 312);
 
   btnMulai.display();
   btnPilih.display();
@@ -942,29 +918,27 @@ void gambarMenu() {
 
   fill(40, 100, 55);
   textSize(12);
-  text("FINAL PROJECT - COMPUTER GRAPHICS  |  PROCESSING JAVA MODE", tengahX, height - 90);
+  text("FINAL PROJECT - COMPUTER GRAPHICS  |  PROCESSING JAVA MODE", width / 2, 560);
   sliderMenu.display();
 }
 
-// Memuat pedoman pengoperasian parameter kontrol dalam tata letak tabular kustom
+// Fungsi gambarPetunjuk: Layar petunjuk: tabel kontrol dan penjelasan bahaya.
 void gambarPetunjuk() {
   latarMenu();
-  float tengahX = width / 2.0;
-  float tengahY = height / 2.0;
 
   textAlign(CENTER, CENTER);
   fill(35, 105, 50);
   textSize(36);
-  text("CARA BERMAIN", tengahX, tengahY - 275);
+  text("CARA BERMAIN", width / 2, 50);
 
   noStroke();
   fill(255, 255, 245, 235);
-  float boxX = (width - 740) / 2.0; 
-  rect(boxX, tengahY - 240, 740, 250, 18);
+  float boxX = (width - 740) / 2; // Menghitung posisi kotak agar selalu di tengah
+  rect(boxX, 85, 740, 250, 18);
 
   fill(35, 105, 50);
   textSize(20);
-  text("KONTROL", tengahX, tengahY - 215);
+  text("KONTROL", width / 2, 110);
 
   textAlign(LEFT, CENTER);
   fill(35, 75, 45);
@@ -977,56 +951,56 @@ void gambarPetunjuk() {
     {"M", "Suara on / mute"},
     {"MOUSE", "Memilih tombol dan mengatur volume"}
   };
-  
+  // Perulangan for: tampilkan setiap baris tabel kontrol.
   for (int i = 0; i < kontrol.length; i++) {
-    text(kontrol[i][0], boxX + 40, tengahY - 177 + i * 30);
-    text(kontrol[i][1], boxX + 340, tengahY - 177 + i * 30);
+    text(kontrol[i][0], boxX + 40, 148 + i * 30);
+    text(kontrol[i][1], boxX + 340, 148 + i * 30);
   }
 
   noStroke();
   fill(255, 255, 245, 235);
-  rect(boxX, tengahY + 25, 740, 220, 18);
+  rect(boxX, 350, 740, 220, 18);
 
   textAlign(CENTER, CENTER);
   fill(35, 105, 50);
   textSize(20);
-  text("DUNIA & BAHAYA", tengahX, tengahY + 50);
+  text("DUNIA & BAHAYA", width / 2, 375);
 
   fill(35, 75, 45);
   textSize(15);
-  text("Level 1 Padang Hujan  -  Level 2 Gunung Salju (licin)", tengahX, tengahY + 85);
-  text("Level 3 Istana Es (sangat licin, platform bergerak)  -  Level 4 Goa Kristal (gelap)", tengahX, tengahY + 113);
-  text("Level 5 Kawah Lava (Duri sepanjang jalan). Jatuh/Kena Duri = kurang nyawa.", tengahX, tengahY + 151);
-  text("Koin +100, checkpoint +250, selesai level +500. Capai portal hijau di ujung level.", tengahX, tengahY + 179);
-  text("Setiap level memiliki muatan awal (loading) dan antarmuka aturan secara independen.", tengahX, tengahY + 207);
+  text("Level 1 Padang Hujan  -  Level 2 Gunung Salju (licin)", width / 2, 410);
+  text("Level 3 Istana Es (sangat licin, platform bergerak)  -  Level 4 Goa Kristal (gelap)", width / 2, 438);
+  text("Level 5 Kawah Lava (Duri sepanjang jalan). Jatuh/Kena Duri = kurang nyawa.", width / 2, 476);
+  text("Koin +100, checkpoint +250, selesai level +500. Capai portal hijau di ujung level.", width / 2, 504);
+  text("Setiap level punya loading dan popup aturan sendiri.", width / 2, 532);
 
   btnKembali.display();
 }
 
-// Memvisualisasikan opsi menu navigasi level dinamis memanfaatkan pemetaan koordinat terstruktur
+// Fungsi gambarPilihLevel: Layar pilih level: kartu level yang bisa diklik.
 void gambarPilihLevel() {
   latarMenu();
-  float tengahX = width / 2.0;
-  float tengahY = height / 2.0;
 
   textAlign(CENTER, CENTER);
   fill(35, 105, 50);
   textSize(36);
-  text("PILIH LEVEL", tengahX, tengahY - 255);
+  text("PILIH LEVEL", width / 2, 70);
 
+  // Mengatur matriks agar semua kartu otomatis berada tepat di tengah layar penuh
   pushMatrix();
-  float totalLebar = (JUMLAH_LEVEL * 205 - 15) * 0.85; 
-  float startX = (width - totalLebar) / 2.0;             
-  float startY = (height - 340 * 0.85) / 2.0;
+  float totalLebar = (JUMLAH_LEVEL * 205 - 15) * 0.85; // Lebar total semua kartu beserta jaraknya
+  float startX = (width - totalLebar) / 2;             // Menghitung titik awal perataan tengah
 
-  translate(startX, startY);
-  scale(0.85); 
+  translate(startX, 0);
+  scale(0.85); // Dikecilkan sedikit agar ke-5 kartu dapat termuat rapi
 
+  // Perulangan for: gambar kartu level 1 sampai 5.
   for (int i = 1; i <= JUMLAH_LEVEL; i++) {
     float x = (i - 1) * 205;
-    float y = 0;
+    float y = 130;
 
-    boolean hv = mouseX >= (x * 0.85 + startX) && mouseX <= ((x + 190) * 0.85 + startX) && mouseY >= startY && mouseY <= (340 * 0.85 + startY);
+    // Logika perhitungan batas kursor (hover hitbox) dengan mempertimbangkan perataan tengah
+    boolean hv = mouseX >= (x * 0.85 + startX) && mouseX <= ((x + 190) * 0.85 + startX) && mouseY >= (y * 0.85) && mouseY <= ((y + 340) * 0.85);
 
     Level L = infoLevel(i);
 
@@ -1062,6 +1036,7 @@ void gambarPilihLevel() {
     textSize(14);
     text("MAIN", x + 95, y + 306);
 
+    // Penanganan saat kartu level diklik
     if (hv && mousePressed && gameState == PILIH) {
         klik();
         mulaiGameBaru(i);
@@ -1073,25 +1048,23 @@ void gambarPilihLevel() {
   btnKembali.display();
 }
 
-// Fungsi dummy sebagai pencegahan error pemanggilan referensi usang
+// Fungsi kartuHover sudah dipindahkan ke fungsi gambarPilihLevel untuk memfasilitasi skalabilitas rasio layar
 boolean kartuHover(int i) {
   return false;
 }
 
-// Manajemen simulasi layar pra-muat grafis serta alokasi data audio ke memori sementara
+// Fungsi gambarLoading: Layar loading tiap level: progress bar, membangun level dan memuat audio bertahap, lalu membuka popup aturan.
 void gambarLoading() {
   loadTimer++;
   float p = constrain(loadTimer / (float) DURASI_LOADING, 0, 1);
 
   String pesan = "Menyiapkan dunia...";
-  
-  // Penyisipan instruksi eksekusi instansiasi tingkat awal
+  // Tahap loading 1: bangun level (sekali saja).
   if (p >= 0.35 && !levelDibuat) {
     buatLevel();
     levelDibuat = true;
   }
-  
-  // Penyisipan instruksi pengikatan (binding) trek musik latar
+  // Tahap loading 2: muat dan putar musik level.
   if (p >= 0.7 && !audioSiap) {
     mainkanBgm(lv.indexBgm);
     audioSiap = true;
@@ -1102,19 +1075,16 @@ void gambarLoading() {
   gambarBg(level, waktuAnimasi * 30, lv.langitA, lv.langitB);
   noStroke();
 
-  float tengahX = width / 2.0;
-  float tengahY = height / 2.0;
-
   textAlign(CENTER, CENTER);
   fill(255);
   textSize(20);
-  text("LEVEL " + level, tengahX, tengahY - 265);
+  text("LEVEL " + level, width / 2, 60);
   textSize(46);
-  text(lv.nama, tengahX, tengahY - 220);
+  text(lv.nama, width / 2, 105);
 
-  gambarBanner(level, tengahX - 220, tengahY - 175, 440, 250);
+  gambarBanner(level, width / 2 - 220, 150, 440, 250);
 
-  float bx = tengahX - 250, by = tengahY + 145, bw = 500, bh = 22;
+  float bx = width / 2 - 250, by = 470, bw = 500, bh = 22;
   noStroke();
   fill(0, 0, 0, 90);
   rect(bx - 4, by - 4, bw + 8, bh + 8, 14);
@@ -1127,32 +1097,34 @@ void gambarLoading() {
 
   fill(255);
   textSize(15);
-  text(pesan + "  " + floor(p * 100) + "%", tengahX, by + 48);
+  text(pesan + "  " + floor(p * 100) + "%", width / 2, by + 48);
   textSize(13);
   fill(255, 255, 255, 220);
-  text(lv.tip, tengahX, by + 80);
+  text(lv.tip, width / 2, by + 80);
 
+  // Loading selesai: buka popup aturan.
   if (loadTimer >= DURASI_LOADING && levelDibuat) {
     stateSebelumRules = PLAY;
     ubahState(RULES);
   }
 }
 
-// Pemetaan ruang deklaratif pustaka pustaka manipulasi suara
+// Objek suara: efek (sfx) dan musik latar (bgm).
 SoundFile sfxLompat, sfxKoin, sfxKena, sfxCheckpoint, sfxMenang, sfxKlik;
 SoundFile[] bgm = new SoundFile[JUMLAH_LEVEL + 1];
-
-// Direktori kueri pemanggilan file suara kompresi tanpa rugi (lossless audio)
+// Nama file musik latar di data/audio (Tambahin 1 bgm_level4 di ujung biar gak error di level 5)
 String[] namaBgm = {
   "bgm_menu.wav", "bgm_level1.wav", "bgm_level2.wav", "bgm_level3.wav", "bgm_level4.wav", "bgm_level4.wav"
 };
 
+// Pengaturan volume, mute, dan musik yang sedang aktif.
 float volume = 0.6;
 boolean senyap = false;
 int bgmAktif = -1;
 
-// Modul utilitas penarik file sumber suara; implementasi penanganan galat (exception handling)
+// Fungsi muatSuara: Memuat file suara dari data/audio; mengembalikan null jika file tidak ada.
 SoundFile muatSuara(String nama) {
+  // Penanganan error: jika file/audio gagal dimuat, program tidak crash.
   try {
     File f = new File(dataPath("audio/" + nama));
     if (!f.exists()) {
@@ -1167,7 +1139,7 @@ SoundFile muatSuara(String nama) {
   }
 }
 
-// Modul utilitas penarik file citra digital; mencegah interupsi kegagalan memori saat gambar tidak eksis
+// Fungsi muatGambar: Memuat gambar dari data/image; mengembalikan null jika file tidak ada.
 PImage muatGambar(String nama) {
   File f = new File(dataPath("image/" + nama));
   if (!f.exists()) {
@@ -1177,7 +1149,7 @@ PImage muatGambar(String nama) {
   return loadImage("image/" + nama);
 }
 
-// Agregasi rutin pemuatan berkas aset suara spesifik menjadi bentuk himpunan utilitas
+// Fungsi muatSemuaSfx: Memuat semua efek suara (lompat, koin, kena, checkpoint, menang, klik).
 void muatSemuaSfx() {
   sfxLompat = muatSuara("lompat.wav");
   sfxKoin = muatSuara("koin.wav");
@@ -1187,19 +1159,19 @@ void muatSemuaSfx() {
   sfxKlik = muatSuara("klik.wav");
 }
 
-// Memutar umpan balik indera pendengaran satu kali menggunakan nilai skalar (volume) yang diregulasi
+// Fungsi mainkanSfx: Memutar satu efek suara dengan volume saat ini (kecuali mute).
 void mainkanSfx(SoundFile s) {
   if (s == null || senyap) return;
   s.amp(volume);
   s.play();
 }
 
-// Eksekusi pemanggilan suara taktil efek mekanis dari UI
+// Fungsi klik: Memutar suara klik tombol.
 void klik() {
   mainkanSfx(sfxKlik);
 }
 
-// Aktivasi pemutaran aliran lagu secara berulang-ulang melalui indeks saluran (channel) audio
+// Fungsi mainkanBgm: Memutar musik latar nomor i secara berulang (loop); menghentikan musik sebelumnya.
 void mainkanBgm(int i) {
   if (bgmAktif == i) return;
   hentikanBgm();
@@ -1211,7 +1183,7 @@ void mainkanBgm(int i) {
   }
 }
 
-// Pemutusan pemutaran modul audio pada siklus aktif sebelum pengoperasian ke saluran lain
+// Fungsi hentikanBgm: Menghentikan musik latar yang sedang aktif.
 void hentikanBgm() {
   if (bgmAktif >= 0 && bgm[bgmAktif] != null) {
     bgm[bgmAktif].stop();
@@ -1219,15 +1191,16 @@ void hentikanBgm() {
   bgmAktif = -1;
 }
 
-// Fungsi pembaruan masukan mutasi penguatan volume sesuai slider referensi
+// Fungsi terapkanVolume: Menerapkan volume/mute ke musik latar yang sedang berjalan.
 void terapkanVolume() {
   if (bgmAktif >= 0 && bgm[bgmAktif] != null) {
     bgm[bgmAktif].amp(senyap ? 0 : volume * 0.5);
   }
 }
 
-// Rendering lapisan grafika pemandangan paralaks (Parallax Scrolling) dengan pencerminan skala (scale -1) 
+// Fungsi gambarBg: Menggambar gambar background berulang ke samping dengan paralaks; tile genap-ganjil dicerminkan agar tersambung mulus.
 void gambarBg(int idx, float geser, color a, color b) {
+  // Jika gambar tidak ada, pakai gradien.
   PImage im = imgBg[idx];
   if (im == null) {
     gradien(a, b);
@@ -1237,8 +1210,9 @@ void gambarBg(int idx, float geser, color a, color b) {
   int n = floor(geser / w);
   float x = -(geser - n * w);
   int i = 0;
-  
+  // Perulangan while: tempel tile gambar sampai menutupi lebar layar.
   while (x < width) {
+    // Tile ganjil dicerminkan (scale -1) agar sambungan gambar mulus.
     if ((n + i) % 2 != 0) {
       pushMatrix();
       translate(x + w, 0);
