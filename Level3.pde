@@ -78,7 +78,3 @@ void bangunLevel3() {
 void latarLevel3() {
   gambarBg(3, cameraX * 0.3, lv.langitA, lv.langitB);
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 1c5d30bc62ce79abd3a577bca9879a3b3fe2d5e3
