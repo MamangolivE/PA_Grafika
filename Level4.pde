@@ -1,9 +1,5 @@
-// =====================================================
 // LEVEL 4 - GOA KRISTAL
-//   Data level, susunan objek, dan latar. Tema: goa gelap, stalaktit, cahaya hanya di sekitar bola.
-// =====================================================
-
-// Fungsi infoLevel4: Data Level 4 Goa Kristal: gelap, tetesan air, cahaya hanya di sekitar bola.
+// Fungsi infoLevel sbg data awal
 Level infoLevel4() {
   Level L = new Level();
   // Identitas dan teks level.

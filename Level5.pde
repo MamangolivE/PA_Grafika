@@ -1,17 +1,12 @@
-// =====================================================
 // LEVEL 5 - KAWAH LAVA
-// Tema: Gunung Berapi
-// =====================================================
-
-// Inisialisasi data utama untuk Level 5
+// Fungsi infoLevel sbg data awal
 Level infoLevel5() {
   Level L = new Level();
   L.id = 5;
   L.nama = "KAWAH LAVA";
   L.tujuan = "Lompati platform di atas lautan lava panas. Hindari jatuh ke dasar arena.";
   L.tip = "Tip: Perhatikan jeda waktu (timing) saat melompat di platform yang bergerak cepat.";
-  
-  // Daftar aturan yang akan ditampilkan pada antarmuka awal level
+   // Daftar aturan yang tampil di popup.
   L.aturan = new String[] {
     "Dasar arena dipenuhi oleh aliran lava bersuhu tinggi.",
     "Jatuh dan menyentuh permukaan lava akan langsung mengurangi nyawa pemain.",
@@ -22,13 +17,13 @@ Level infoLevel5() {
   // Konfigurasi ukuran arena, posisi checkpoint, dan titik portal keluar
   L.lebar = 4200;
   L.cpX = 2100;
-  L.cpY = 500;   // Penyesuaian koordinat Y mengikuti elevasi platform
-  L.exitY = 420; // Penyesuaian elevasi untuk platform akhir
+  L.cpY = 500;   
+  L.exitY = 420; 
   
   // Konfigurasi fisika lingkungan dan musik latar
-  L.traksi = 0.8; // Pengurangan sedikit nilai traksi untuk menyimulasikan efek abu vulkanik
-  L.tipeCuaca = C_NONE; // Efek cuaca dasar dinonaktifkan, diganti dengan efek lava kustom pada fungsi latar
-  L.indexBgm = 4; // Menggunakan BGM indeks 4 untuk menyesuaikan dengan intensitas level
+  L.traksi = 0.8; 
+  L.tipeCuaca = C_NONE;
+  L.indexBgm = 4; 
   
   // Pengaturan palet warna untuk tema kawah vulkanik (merah, oranye, dan coklat)
   L.cTanah = color(50, 20, 15);

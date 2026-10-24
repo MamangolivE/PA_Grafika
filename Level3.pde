@@ -1,9 +1,5 @@
-// =====================================================
 // LEVEL 3 - ISTANA ES
-//   Data level, susunan objek, dan latar. Tema: es, lantai sangat licin, platform bergerak.
-// =====================================================
-
-// Fungsi infoLevel3: Data Level 3 Istana Es: lantai sangat licin dan serpihan es.
+// Fungsi infoLevel sbg data awal
 Level infoLevel3() {
   Level L = new Level();
   // Identitas dan teks level.

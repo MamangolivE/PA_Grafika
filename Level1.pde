@@ -1,9 +1,5 @@
-// =====================================================
 // LEVEL 1 - PADANG HUJAN
-//   Data level, susunan objek (platform, duri, koin), dan latar. Tema: hujan, lantai normal.
-// =====================================================
-
-// Fungsi infoLevel1: Data Level 1 Padang Hujan: nama, misi, aturan, ukuran, cuaca hujan, warna.
+// Fungsi infoLevel sbg data awal
 Level infoLevel1() {
   Level L = new Level();
   // Identitas dan teks level.
@@ -37,9 +33,8 @@ Level infoLevel1() {
   return L;
 }
 
-// Fungsi bangunLevel1: Menyusun objek Level 1: platform, duri, dan koin.
+// Fungsi bangunLevel untuk menyusun tantangan
 void bangunLevel1() {
-  // Platform: x, y, lebar, tinggi (MovingPlatform = bergerak).
   platforms.add(new Platform(0, 560, 420, 100));
   platforms.add(new Platform(510, 560, 280, 100));
   platforms.add(new Platform(880, 500, 180, 25));
@@ -50,13 +45,13 @@ void bangunLevel1() {
   platforms.add(new Platform(2250, 440, 200, 25));
   platforms.add(new Platform(2510, 560, 290, 100));
 
-  // Rintangan: duri lantai (x, y, jumlah) dan stalaktit menggantung.
+  // Rintangan: duri lantai
   tambahDuri(250, 560, 5);
   tambahDuri(610, 560, 3);
   tambahDuri(1730, 560, 3);
   tambahDuri(2590, 560, 3);
 
-  // Koin yang bisa dikumpulkan (+100 skor).
+  // Koin
   tambahKoin(170, 510);
   tambahKoin(335, 490);
   tambahKoin(580, 505);
@@ -72,7 +67,7 @@ void bangunLevel1() {
   tambahKoin(2640, 505);
 }
 
-// Fungsi latarLevel1: Latar Level 1 memakai gambar bg1.png.
+// Fungsi latarLevel sbg background
 void latarLevel1() {
   gambarBg(1, cameraX * 0.3, lv.langitA, lv.langitB);
 }
