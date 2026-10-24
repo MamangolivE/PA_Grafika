@@ -25,6 +25,7 @@ void mulaiLevelBaru(int l) {
   lv = infoLevel(l);
   skorAwalLevel = skor;
   koinAwalLevel = jumlahKoin;
+  matiDiLevel = 0;
   loadTimer = 0;
   levelDibuat = false;
   audioSiap = false;
@@ -42,6 +43,7 @@ void ulangLevel() {
 
 // Fungsi untuk kembali ke menu utama dan memutar musik menu
 void keMenu() {
+  simpanData();
   mainkanBgm(0);
   ubahState(MENU);
 }
@@ -67,6 +69,7 @@ void buatLevel() {
   cameraX = 0;
   checkpointX = 80;
   checkpointAktif = false;
+  practiceCpAda = false;
 
   // Load layout objek sesuai dengan nomor level yang aktif
   switch (level) {
@@ -263,6 +266,8 @@ class Spike {
       return color(125, 160, 205);
     case 3:
       return color(150, 225, 255);
+    case 5:
+      return color(255, 120, 40);
     default:
       return color(150, 125, 185);
     }
@@ -306,6 +311,7 @@ class Spike {
 // Class untuk item koin yang bisa dikumpulkan pemain
 class Coin {
   float x, y;
+  float r = 11; // jari-jari hitbox koin (sama dengan ukuran gambar koin)
   boolean terambil = false;
 
   Coin(float x, float y) {
@@ -343,11 +349,13 @@ class Player {
   float x, y;
   float vx = 0;
   float vy = 0;
-  float r = 18;
+  float r = 18;           // jari-jari hitbox badan (lingkaran, sama dengan ukuran gambar bola)
+  float rBahaya = 13;     // hitbox bahaya (duri) sedikit lebih kecil dari badan agar adil
   float kecepatan = 4.5;
   float gravitasi = 0.48;
   float kekuatanLompat = -10.5;
   float putar = 0;
+  int koyote = 0;         // sisa frame toleransi lompat setelah meninggalkan tepi platform
 
   boolean diTanah = false;
   Platform berdiri = null;
@@ -373,52 +381,91 @@ class Player {
     vx += (target - vx) * g;
     if (abs(vx) < 0.05) vx = 0;
 
-    // Pemain hanya bisa melompat jika posisinya menapak di permukaan
+    // Lompat diizinkan saat menapak atau beberapa frame setelah lepas dari tepi (koyote)
     if (permintaanLompat) {
-      if (diTanah) lompat();
+      if (diTanah || koyote > 0) lompat();
       permintaanLompat = false;
     }
-
-    x += vx;
-    float yLama = y;
 
     // Tambahkan pengaruh gravitasi konstan agar bola bisa jatuh
     vy += gravitasi;
     vy = min(vy, 12);
-    y += vy;
 
     // Reset status pijakan sebelum mengecek tabrakan
     diTanah = false;
     berdiri = null;
 
-    // Cek deteksi tabrakan (collision) antara bola dengan permukaan platform
-    for (Platform p : platforms) {
-      boolean masuk = x + r > p.x && x - r < p.x + p.w;
-      
-      // Jika bola jatuh dari atas dan melewati batas permukaan platform
-      if (masuk && yLama + r <= p.y + 1 && y + r >= p.y && vy >= 0) {
-        y = p.y - r;
-        vy = 0;
-        diTanah = true;
-        berdiri = p;
-      }
+    // Gerak dibagi 2 sub-langkah supaya bola tidak menembus platform tipis saat jatuh cepat
+    for (int langkah = 0; langkah < 2; langkah++) {
+      x += vx / 2;
+      y += vy / 2;
+      selesaikanTabrakan();
     }
+
+    if (diTanah) koyote = 6;
+    else if (koyote > 0) koyote--;
 
     // Geser posisi pemain jika platform yang dipijaknya sedang bergerak
     if (berdiri != null) x += berdiri.dx;
-    
+
     // Tahan posisi bola agar tidak keluar dari batas samping arena
     x = constrain(x, r, lv.lebar - r);
     putar += vx / r;
   }
 
+  // Tabrakan lingkaran vs balok: titik terdekat pada platform dicari, lalu bola didorong keluar.
+  // Dengan cara ini permukaan atas, sisi samping, sudut, dan bagian bawah platform semuanya solid
+  // dan bola tidak bisa lagi "melayang" di tepi atau menembus dinding platform.
+  void selesaikanTabrakan() {
+    for (Platform p : platforms) {
+      float tx = constrain(x, p.x, p.x + p.w);
+      float ty = constrain(y, p.y, p.y + p.h);
+      float dx = x - tx;
+      float dy = y - ty;
+      float d2 = dx * dx + dy * dy;
+      if (d2 >= r * r) continue;
+
+      if (d2 < 0.0001) {
+        // Pusat bola masuk ke dalam balok (misal terjepit platform bergerak): dorong ke atas permukaan.
+        y = p.y - r;
+        if (vy > 0) vy = 0;
+        diTanah = true;
+        berdiri = p;
+      } else {
+        float d = sqrt(d2);
+        float nx = dx / d;
+        float ny = dy / d;
+        x += nx * (r - d);
+        y += ny * (r - d);
+        if (ny < -0.5) {
+          // Mendarat di permukaan atas.
+          if (vy > 0) vy = 0;
+          diTanah = true;
+          berdiri = p;
+        } else if (ny > 0.5) {
+          // Kepala menabrak bagian bawah platform.
+          if (vy < 0) vy = 0;
+        } else {
+          // Menabrak dinding samping: hentikan dorongan ke arah dinding.
+          if (nx > 0 && vx < 0) vx = 0;
+          else if (nx < 0 && vx > 0) vx = 0;
+        }
+      }
+    }
+  }
+
   // Fungsi untuk menjalankan lompatan dan memunculkan efek partikel
   void lompat() {
-    if (diTanah && gameState == PLAY) {
+    if (gameState == PLAY) {
       vy = kekuatanLompat;
       diTanah = false;
+      koyote = 0;
+      if (!modePractice) {
+        statLompat++;
+        dataKotor = true;
+      }
       mainkanSfx(sfxLompat);
-      
+
       // Munculkan partikel debu lompatan
       for (int i = 0; i < 5; i++) {
         particles.add(new Particle(x, y + r, cyan));
@@ -426,7 +473,7 @@ class Player {
     }
   }
 
-  // Menampilkan grafik bola karakter
+  // Menampilkan grafik bola karakter sesuai skin yang dipakai
   void display() {
     pushMatrix();
     translate(x, y);
@@ -443,19 +490,7 @@ class Player {
       ellipse(0, 0, r * 3.2, r * 3.2);
     }
 
-    fill(120, 15, 15);
-    ellipse(0, 0, r * 2 + 4, r * 2 + 4);
-    fill(195, 35, 35);
-    ellipse(0, 0, r * 2, r * 2);
-    fill(235, 55, 45);
-    ellipse(-2, -2, r * 1.72, r * 1.72);
-
-    // Putar titik corak bola agar terlihat menggelinding natural
-    rotate(putar);
-    fill(255, 190, 160);
-    ellipse(r * 0.5, -r * 0.35, r * 0.4, r * 0.4);
-    fill(255, 255, 255, 200);
-    ellipse(-r * 0.45, r * 0.4, r * 0.22, r * 0.22);
+    bolaSkin(skinAktif, r, putar);
 
     popMatrix();
   }
@@ -499,6 +534,7 @@ void updateGame() {
   }
 
   player.update();
+  if (!modePractice) cekPrestasi();
 
   periksaKoin();
   periksaDuri();
@@ -510,14 +546,14 @@ void updateGame() {
 
   // Cek apakah pemain jatuh ke jurang (keluar batas bawah layar)
   // Khusus level 5, batas toleransi jatuhnya diturunkan karena ada lava
-  float batasBawah = (lv.id == 5) ? 580 : height + 100;
+  float batasBawah = (lv.id == 5) ? 580 : VH + 100;
   if (player.y > batasBawah) {
     kehilanganNyawa();
   }
 
   // Kamera mengikuti pergerakan pemain secara halus menggunakan fungsi lerp
-  float targetCam = player.x - width * 0.38;
-  cameraX = constrain(lerp(cameraX, targetCam, 0.2), 0, lv.lebar - width);
+  float targetCam = player.x - VW * 0.38;
+  cameraX = constrain(lerp(cameraX, targetCam, 0.2), 0, lv.lebar - VW);
 
   // Update data partikel, dan hapus partikel dari array jika sudah hilang (umurnya habis)
   for (int i = particles.size() - 1; i >= 0; i--) {
@@ -539,11 +575,16 @@ void updateGame() {
 
 // Cek apakah pemain menyentuh area koin yang belum diambil
 void periksaKoin() {
+  if (modePractice) return; // practice mode: koin tidak bisa diambil
   for (Coin c : coins) {
-    if (!c.terambil && dist(player.x, player.y, c.x, c.y) < 30) {
+    // Kena tepat saat lingkaran bola (r + 2 outline) dan lingkaran koin saling bersentuhan.
+    if (!c.terambil && dist(player.x, player.y, c.x, c.y) < player.r + 2 + c.r) {
       c.terambil = true;
       skor += 100;
       jumlahKoin++;
+      dompet++;
+      statKoinTotal++;
+      dataKotor = true;
       mainkanSfx(sfxKoin);
       
       for (int i = 0; i < 8; i++) {
@@ -557,7 +598,7 @@ void periksaKoin() {
 void periksaDuri() {
   for (Spike s : spikes) {
     if (bolaMenyentuhSegitiga(
-      player.x, player.y, player.r * 0.9,
+      player.x, player.y, player.rBahaya,
       s.x, s.y,
       s.x + 12, s.y + 27 * s.arah,
       s.x + 24, s.y)) {
@@ -604,7 +645,11 @@ void periksaCheckpoint() {
   if (player.x > lv.cpX && !checkpointAktif) {
     checkpointAktif = true;
     checkpointX = lv.cpX;
-    skor += 250;
+    if (!modePractice) {
+      skor += 250;
+      statCheckpoint++;
+      dataKotor = true;
+    }
     mainkanSfx(sfxCheckpoint);
     
     for (int i = 0; i < 18; i++) {
@@ -616,29 +661,40 @@ void periksaCheckpoint() {
 // Cek apakah posisi pemain sudah mencapai area portal hijau di ujung kanan level
 void periksaKemenangan() {
   if (player.x >= lv.lebar - 120) {
-    skor += 500;
+    if (!modePractice) skor += 500;
     mainkanSfx(sfxMenang);
-    if (level < 5) { // Cek apakah level ini adalah level terakhir atau bukan
+    if (!modePractice) prestasiLevelSelesai(level);
+    if (level < JUMLAH_LEVEL) { // Cek apakah level ini adalah level terakhir atau bukan
       ubahState(LEVEL_DONE);
     } else {
       ubahState(WIN);
     }
+    simpanData();
   }
 }
 
 // Fungsi untuk menangani penalti ketika pemain mati (jatuh atau kena duri)
 void kehilanganNyawa() {
-  nyawa--;
+  if (!modePractice) { // practice mode: nyawa tak terbatas
+    nyawa--;
+    statMati++;
+    matiDiLevel++;
+    dataKotor = true;
+  }
   mainkanSfx(sfxKena);
   
   for (int i = 0; i < 14; i++) {
-    particles.add(new Particle(player.x, player.y, color(235, 55, 45)));
+    particles.add(new Particle(player.x, player.y, skinTengah[skinAktif]));
   }
   resetInput();
 
   // Jika nyawa habis tampilkan layar Game Over, jika tidak respawn di checkpoint terakhir
-  if (nyawa <= 0) {
+  if (!modePractice && nyawa <= 0) {
+    simpanData();
     ubahState(LOSE);
+  } else if (modePractice && practiceCpAda) {
+    player = new Player(practiceCpX, practiceCpY);
+    cameraX = max(0, practiceCpX - 300);
   } else {
     player = new Player(checkpointX + 30, lv.cpY - 90);
     cameraX = max(0, checkpointX - 300);
@@ -651,10 +707,22 @@ void mousePressed() {
   case MENU:
     if (btnMulai.hover()) {
       klik();
+      modePractice = false;
       mulaiGameBaru(1);
     } else if (btnPilih.hover()) {
       klik();
+      modePractice = false;
       ubahState(PILIH);
+    } else if (btnPractice.hover()) {
+      klik();
+      modePractice = true;
+      ubahState(PILIH);
+    } else if (btnToko.hover()) {
+      klik();
+      ubahState(SKIN);
+    } else if (btnPrestasi.hover()) {
+      klik();
+      ubahState(PRESTASI);
     } else if (btnPetunjuk.hover()) {
       klik();
       ubahState(HELP);
@@ -671,6 +739,26 @@ void mousePressed() {
         return;
       }
     }
+    if (btnKembali.hover()) {
+      klik();
+      ubahState(MENU);
+    }
+    break;
+
+  case SKIN:
+    for (int i = 0; i < JUMLAH_SKIN; i++) {
+      if (tombolSkinHover(i)) {
+        aksiSkin(i);
+        return;
+      }
+    }
+    if (btnKembali.hover()) {
+      klik();
+      ubahState(MENU);
+    }
+    break;
+
+  case PRESTASI:
     if (btnKembali.hover()) {
       klik();
       ubahState(MENU);
@@ -743,11 +831,18 @@ void aksiUtama() {
 
 // Membaca input spesifik dari keyboard pengguna
 void keyPressed() {
+  // F11: tukar jendela maximized (ada tombol minimize) dengan layar penuh murni.
+  if (keyCode == 122) {
+    ubahLayarPenuh();
+    return;
+  }
+
   if (key == ESC) {
     key = 0;
     if (gameState == PLAY) ubahState(PAUSE);
     else if (gameState == PAUSE) ubahState(PLAY);
     else if (gameState == RULES) tutupAturan();
+    else if (gameState == SKIN || gameState == PRESTASI || gameState == PILIH || gameState == HELP) ubahState(MENU);
     return;
   }
 
@@ -786,6 +881,20 @@ void keyPressed() {
 
   if (key == 'p' || key == 'P') ubahState(PAUSE);
   if (key == 'h' || key == 'H') bukaAturan(PLAY);
+
+  // B: tampilkan / sembunyikan hitbox.
+  if (key == 'b' || key == 'B') tampilHitbox = !tampilHitbox;
+
+  // Practice mode: C = pasang checkpoint di posisi sekarang (harus menapak), X = hapus checkpoint buatan.
+  if (modePractice) {
+    if ((key == 'c' || key == 'C') && player.diTanah) {
+      practiceCpAda = true;
+      practiceCpX = player.x;
+      practiceCpY = player.y;
+      mainkanSfx(sfxCheckpoint);
+    }
+    if (key == 'x' || key == 'X') practiceCpAda = false;
+  }
 }
 
 // Membatalkan status pergerakan input saat tombol arah dilepas

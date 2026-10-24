@@ -1,5 +1,9 @@
+// =====================================================
 // LEVEL 4 - GOA KRISTAL
-// Fungsi infoLevel sbg data awal
+//   Data level, susunan objek, dan latar. Tema: goa gelap, stalaktit, cahaya hanya di sekitar bola.
+// =====================================================
+
+// Fungsi infoLevel4: Data Level 4 Goa Kristal: gelap, tetesan air, cahaya hanya di sekitar bola.
 Level infoLevel4() {
   Level L = new Level();
   // Identitas dan teks level.
@@ -77,9 +81,4 @@ void bangunLevel4() {
   barisKoin(3270, 435, 3, 40);
   barisKoin(3500, 395, 3, 40);
   barisKoin(3850, 470, 4, 40);
-}
-
-// Fungsi latarLevel4: Latar Level 4 memakai gambar bg4.png.
-void latarLevel4() {
-  gambarBg(4, cameraX * 0.3, lv.langitA, lv.langitB);
 }

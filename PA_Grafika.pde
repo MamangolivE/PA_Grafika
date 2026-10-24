@@ -1,9 +1,11 @@
 // Main Filenya
 import processing.sound.*;
+import com.jogamp.newt.opengl.GLWindow;
 
 // STATE GAME: tiap angka mewakili satu layar/kondisi permainan.
 final int MENU = 0, PILIH = 1, HELP = 2, LOADING = 3, RULES = 4,
-  PLAY = 5, PAUSE = 6, LEVEL_DONE = 7, WIN = 8, LOSE = 9;
+  PLAY = 5, PAUSE = 6, LEVEL_DONE = 7, WIN = 8, LOSE = 9,
+  SKIN = 10, PRESTASI = 11;
 // Jumlah level (Sudah diubah jadi 5).
 final int JUMLAH_LEVEL = 5;
 
@@ -19,6 +21,13 @@ Level lv;
 EfekCuaca cuaca;
 
 // Variabel permainan: state, level, nyawa, skor, koin, dan loading.
+// Resolusi virtual: tinggi dunia selalu 650 satuan, lebar mengikuti rasio layar (SK = faktor skala ke piksel).
+float VW = 1000, VH = 650, SK = 1;
+// Practice mode (seperti Geometry Dash): nyawa tak terbatas, koin tidak bisa diambil, checkpoint buatan sendiri.
+boolean modePractice = false;
+boolean practiceCpAda = false;
+float practiceCpX = 0, practiceCpY = 0;
+boolean tampilHitbox = false; // tombol B: tampilkan hitbox
 int gameState = MENU;
 int stateSebelumRules = PLAY;
 int level = 1;
@@ -78,34 +87,43 @@ void setup() {
 
   buatTombol();
   muatSemuaSfx();
+  muatData();
   mainkanBgm(0);
   lv = infoLevel(1);
 }
 
 // Fungsi updatePosisiUI: Menjaga posisi semua tombol dan slider tetap di tengah layar jika di-fullscreen.
 void updatePosisiUI() {
-  btnMulai.x = width / 2 - 115;
-  btnPilih.x = width / 2 - 115;
-  btnPetunjuk.x = width / 2 - 115;
-  btnKembali.x = width / 2 - 110;
+  btnMulai.x = VW / 2 - 115;
+  btnPilih.x = VW / 2 - 115;
+  btnPetunjuk.x = VW / 2 - 115;
+  btnToko.x = VW / 2 - 115;
+  btnPrestasi.x = VW / 2 - 115;
+  btnPractice.x = VW / 2 - 115;
+  btnKembali.x = VW / 2 - 110;
 
-  btnLanjut.x = width / 2 - 115;
-  btnAturan.x = width / 2 - 115;
-  btnMenuPause.x = width / 2 - 115;
+  btnLanjut.x = VW / 2 - 115;
+  btnAturan.x = VW / 2 - 115;
+  btnMenuPause.x = VW / 2 - 115;
 
-  btnMulaiAturan.x = width / 2 - 100;
+  btnMulaiAturan.x = VW / 2 - 100;
   // Perbaikan posisi Y tombol Mulai agar dinamis mengikuti tinggi panel saat fullscreen
-  btnMulaiAturan.y = (height - 450) / 2 + 386; 
+  btnMulaiAturan.y = (VH - 450) / 2 + 386; 
 
-  btnAksi1.x = width / 2 - 115;
-  btnAksi2.x = width / 2 - 115;
+  btnAksi1.x = VW / 2 - 115;
+  btnAksi2.x = VW / 2 - 115;
 
-  sliderMenu.x = width / 2 - 90;
-  sliderPause.x = width / 2 - 100;
+  sliderMenu.x = VW / 2 - 90;
+  sliderPause.x = VW / 2 - 100;
 }
 
 // Fungsi draw: Dipanggil terus menerus (mode continuous, 60x/detik). Memilih layar yang digambar sesuai gameState.
 void draw() {
+  // Skala tampilan mengikuti ukuran jendela (layar penuh / minimize / resize).
+  // Jendela dimaximize setelah beberapa frame (memanggil ini di setup() membuat JOGL deadlock).
+  if (frameCount == 10) aturLayarPenuh();
+  SK = height / VH;
+  VW = width / SK;
   updatePosisiUI(); // Panggil update posisi agar menu selalu rapi di tengah
 
   waktuAnimasi += 0.04;
@@ -113,6 +131,8 @@ void draw() {
   background(0);
   // Matikan depth test agar gambar 2D (latar, HUD) tidak saling menutupi.
   hint(DISABLE_DEPTH_TEST);
+  pushMatrix();
+  scale(SK);
 
   // switch: pilih layar sesuai state game.
   switch (gameState) {
@@ -124,6 +144,12 @@ void draw() {
     break;
   case HELP:
     gambarPetunjuk();
+    break;
+  case SKIN:
+    gambarToko();
+    break;
+  case PRESTASI:
+    gambarPrestasi();
     break;
   case LOADING:
     gambarLoading();
@@ -152,6 +178,10 @@ void draw() {
     gambarPopupKalah();
     break;
   }
+
+  gambarToast(); // notifikasi pencapaian tampil di atas semua layar
+  popMatrix();
+  autosimpan();
 }
 
 // ----- CLASS EfekCuaca: partikel cuaca layar (hujan, salju, serpihan es, tetesan goa) dengan array posisi/ukuran. -----
@@ -187,8 +217,8 @@ class EfekCuaca {
     int i = 0;
     // Perulangan while: isi posisi acak setiap partikel.
     while (i < n) {
-      px[i] = random(width);
-      py[i] = random(height);
+      px[i] = random(VW);
+      py[i] = random(VH);
       ps[i] = random(0.6, 1.4);
       i++;
     }
@@ -217,12 +247,12 @@ class EfekCuaca {
         break;
       }
 
-      if (py[i] > height + 10) {
+      if (py[i] > VH + 10) {
         py[i] = (tipe == C_GOA) ? random(-300, -10) : -10;
-        px[i] = random(width);
+        px[i] = random(VW);
       }
-      if (px[i] < -10) px[i] = width + 10;
-      if (px[i] > width + 10) px[i] = -10;
+      if (px[i] < -10) px[i] = VW + 10;
+      if (px[i] > VW + 10) px[i] = -10;
     }
   }
 
@@ -233,7 +263,7 @@ class EfekCuaca {
     case C_HUJAN:
       noStroke();
       fill(20, 30, 55, 45);
-      rect(0, 0, width, height);
+      rect(0, 0, VW, VH);
       stroke(200, 220, 255, 140);
       strokeWeight(1.5);
       // Perulangan for: gambar garis hujan.
@@ -293,9 +323,9 @@ void gradien(color a, color b) {
   noStroke();
   int yy = 0;
   // Perulangan while: gambar strip warna dari atas ke bawah.
-  while (yy < height) {
-    fill(lerpColor(a, b, yy / (float) height));
-    rect(0, yy, width, 6);
+  while (yy < VH) {
+    fill(lerpColor(a, b, yy / (float) VH));
+    rect(0, yy, VW, 6);
     yy += 5;
   }
 }
@@ -304,7 +334,7 @@ void gradien(color a, color b) {
 void awan(float g, color c, float yBase, int jumlah) {
   noStroke();
   fill(c);
-  float lebarWrap = width + 300;
+  float lebarWrap = VW + 300;
   float jarak = lebarWrap / jumlah;
   // Perulangan for: gambar tiap awan.
   for (int i = 0; i < jumlah; i++) {
@@ -322,10 +352,10 @@ void bukit(float g, float yBase, float tinggi, float seg, color c) {
   noStroke();
   int i0 = floor(g / seg);
   float x0 = i0 * seg - g;
-  int n = ceil(width / seg) + 2;
+  int n = ceil(VW / seg) + 2;
 
   beginShape();
-  vertex(x0, height);
+  vertex(x0, VH);
   vertex(x0, yBase);
   // Perulangan for: tambahkan satu gelombang bezier per segmen.
   for (int i = 0; i < n; i++) {
@@ -334,7 +364,7 @@ void bukit(float g, float yBase, float tinggi, float seg, color c) {
     float x = x0 + i * seg;
     bezierVertex(x + seg * 0.3, yBase - t, x + seg * 0.7, yBase - t, x + seg, yBase);
   }
-  vertex(x0 + n * seg, height);
+  vertex(x0 + n * seg, VH);
   endShape(CLOSE);
 }
 
@@ -368,7 +398,7 @@ void jalankanGame() {
   if (kilat > 0.02) {
     noStroke();
     fill(255, 255, 255, 150 * kilat);
-    rect(0, 0, width, height);
+    rect(0, 0, VW, VH);
   }
 
   gambarHUD();
@@ -423,10 +453,13 @@ void gambarDunia() {
   // Geser ke depan platform (sumbu z) agar objek 2D tidak tertutup box.
   translate(0, 0, 40);
   // Perulangan for-each: gambar semua koin.
-  for (Coin c : coins) {
-    c.display();
+  if (!modePractice) {
+    for (Coin c : coins) {
+      c.display();
+    }
   }
   gambarCheckpoint();
+  gambarCheckpointPractice();
   gambarPortal();
   player.display();
   // Perulangan for-each: gambar semua partikel.
@@ -434,6 +467,8 @@ void gambarDunia() {
     p.display();
   }
   popMatrix();
+
+  if (tampilHitbox) gambarHitbox();
 
   popMatrix();
   // Matikan depth test agar gambar 2D (latar, HUD) tidak saling menutupi.
@@ -475,11 +510,29 @@ PImage buatVinyet(int w, int h) {
 void gambarVinyet() {
   float sx = player.x - cameraX;
   float sy = player.y;
+  float ta = 238 + sin(waktuAnimasi * 7) * 14;
+  float lw = 860;          // area bercahaya hanya di sekitar bola
+  float lh = lw * 0.65;
+
+  // Gambar vinyet 2x agar tepinya hampir hitam pekat (bagian tengah tetap bening).
   imageMode(CENTER);
-  tint(255, 238 + sin(waktuAnimasi * 7) * 14);
-  image(vinyet, sx, sy, 1800, 1170);
+  tint(255, ta);
+  image(vinyet, sx, sy, lw, lh);
+  image(vinyet, sx, sy, lw, lh);
   noTint();
   imageMode(CORNER);
+
+  // Seluruh layar di luar vinyet ditutup gelap dengan alpha yang sama dengan tepi vinyet (tanpa sambungan).
+  float a = (235.0 / 255.0) * (ta / 255.0);
+  float alphaGelap = 255 * (1 - (1 - a) * (1 - a));
+  float x0 = sx - lw / 2, x1 = sx + lw / 2, y0 = sy - lh / 2, y1 = sy + lh / 2;
+  noStroke();
+  fill(4, 6, 16, alphaGelap);
+  if (y0 > 0) rect(0, 0, VW, y0);
+  if (y1 < VH) rect(0, y1, VW, VH - y1);
+  float ya = max(0, y0), yb = min(VH, y1);
+  if (x0 > 0) rect(0, ya, x0, yb - ya);
+  if (x1 < VW) rect(x1, ya, VW - x1, yb - ya);
 }
 
 // Fungsi hati: Menggambar ikon hati (nyawa) memakai bezierVertex.
@@ -516,16 +569,28 @@ void gambarHUD() {
   text("KOIN " + jumlahKoin, 250, 64);
 
   fill(255, 255, 245, 225);
-  rect(width - 330, 15, 315, 34, 9);
+  rect(VW - 330, 15, 315, 34, 9);
   fill(35, 85, 45);
   textAlign(CENTER, CENTER);
   textSize(12);
-  text("P : PAUSE  |  H : ATURAN  |  M : " + (senyap ? "SUARA ON" : "MUTE"), width - 172, 32);
+  text("P : PAUSE  |  H : ATURAN  |  M : " + (senyap ? "SUARA ON" : "MUTE"), VW - 172, 32);
 
   fill(255, 255, 245, 225);
-  rect(width - 280, height - 58, 265, 43, 9);
+  rect(VW - 280, VH - 58, 265, 43, 9);
   fill(35, 85, 45);
-  text("A / D : GERAK   |   SPASI : LOMPAT", width - 147, height - 36);
+  text("A / D : GERAK   |   SPASI : LOMPAT", VW - 147, VH - 36);
+
+  if (modePractice) {
+    noStroke();
+    fill(110, 70, 190, 235);
+    rect(15, 94, 410, 26, 9);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(12);
+    text("PRACTICE MODE  |  C : CHECKPOINT  |  X : HAPUS  |  B : HITBOX", 220, 107);
+  }
+
+  if (tampilHitbox) gambarLegendaHitbox();
 }
 
 // Fungsi gambarCheckpoint: Menggambar tiang dan bendera checkpoint yang berkibar.
@@ -597,7 +662,7 @@ class Tombol {
 
   // Mengembalikan true jika kursor mouse berada di dalam area tombol.
   boolean hover() {
-    return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
+    return mx() >= x && mx() <= x + w && my() >= y && my() <= y + h;
   }
 
   // Menggambar tombol; saat hover warnanya menyala dan ada efek glow.
@@ -640,7 +705,7 @@ class GeserVolume {
 
   // True jika mouse berada di area slider.
   boolean kena() {
-    return mouseX >= x - 12 && mouseX <= x + w + 12 && mouseY >= y - 14 && mouseY <= y + 14;
+    return mx() >= x - 12 && mx() <= x + w + 12 && my() >= y - 14 && my() <= y + 14;
   }
 
   // Mulai menggeser slider saat mouse ditekan di atasnya.
@@ -653,7 +718,7 @@ class GeserVolume {
 
   // Mengubah nilai volume sesuai posisi mouse (0 sampai 1) lalu menerapkannya.
   void ubah() {
-    volume = constrain((mouseX - x) / w, 0, 1);
+    volume = constrain((mx() - x) / w, 0, 1);
     terapkanVolume();
   }
 
@@ -678,7 +743,7 @@ class GeserVolume {
 }
 
 // Objek GUI: tombol dan slider volume.
-Tombol btnMulai, btnPilih, btnPetunjuk, btnKembali;
+Tombol btnMulai, btnPilih, btnPetunjuk, btnKembali, btnToko, btnPrestasi, btnPractice;
 Tombol btnLanjut, btnAturan, btnMenuPause;
 // Objek GUI: tombol dan slider volume.
 Tombol btnMulaiAturan, btnAksi1, btnAksi2;
@@ -686,21 +751,24 @@ GeserVolume sliderMenu, sliderPause;
 
 // Fungsi buatTombol: Membuat semua objek Tombol dan slider dengan posisi awal. (Posisinya akan diupdate dinamis oleh updatePosisiUI)
 void buatTombol() {
-  btnMulai = new Tombol(width / 2 - 115, 365, 230, 50, "MULAI BERMAIN", cyan);
-  btnPilih = new Tombol(width / 2 - 115, 427, 230, 46, "PILIH LEVEL", ungu);
-  btnPetunjuk = new Tombol(width / 2 - 115, 485, 230, 46, "PETUNJUK", ungu);
-  btnKembali = new Tombol(width / 2 - 110, 590, 220, 44, "KEMBALI", cyan);
+  btnMulai = new Tombol(VW / 2 - 115, 240, 230, 48, "MULAI BERMAIN", cyan);
+  btnPilih = new Tombol(VW / 2 - 115, 294, 230, 44, "PILIH LEVEL", ungu);
+  btnPractice = new Tombol(VW / 2 - 115, 343, 230, 44, "PRACTICE MODE", ungu);
+  btnToko = new Tombol(VW / 2 - 115, 392, 230, 44, "TOKO SKIN", ungu);
+  btnPrestasi = new Tombol(VW / 2 - 115, 441, 230, 44, "PENCAPAIAN", ungu);
+  btnPetunjuk = new Tombol(VW / 2 - 115, 490, 230, 44, "PETUNJUK", ungu);
+  btnKembali = new Tombol(VW / 2 - 110, 590, 220, 44, "KEMBALI", cyan);
 
-  btnLanjut = new Tombol(width / 2 - 115, 285, 230, 50, "LANJUTKAN", cyan);
-  btnAturan = new Tombol(width / 2 - 115, 347, 230, 46, "ATURAN LEVEL", ungu);
-  btnMenuPause = new Tombol(width / 2 - 115, 405, 230, 46, "MENU UTAMA", ungu);
+  btnLanjut = new Tombol(VW / 2 - 115, 285, 230, 50, "LANJUTKAN", cyan);
+  btnAturan = new Tombol(VW / 2 - 115, 347, 230, 46, "ATURAN LEVEL", ungu);
+  btnMenuPause = new Tombol(VW / 2 - 115, 405, 230, 46, "MENU UTAMA", ungu);
 
-  btnMulaiAturan = new Tombol(width / 2 - 100, 105 + 450 - 64, 200, 46, "MULAI", cyan);
-  btnAksi1 = new Tombol(width / 2 - 115, 395, 230, 50, "", cyan);
-  btnAksi2 = new Tombol(width / 2 - 115, 457, 230, 46, "MENU UTAMA", ungu);
+  btnMulaiAturan = new Tombol(VW / 2 - 100, 105 + 450 - 64, 200, 46, "MULAI", cyan);
+  btnAksi1 = new Tombol(VW / 2 - 115, 395, 230, 50, "", cyan);
+  btnAksi2 = new Tombol(VW / 2 - 115, 457, 230, 46, "MENU UTAMA", ungu);
 
-  sliderMenu = new GeserVolume(width / 2 - 90, 600, 180);
-  sliderPause = new GeserVolume(width / 2 - 100, 495, 200);
+  sliderMenu = new GeserVolume(VW / 2 - 90, 600, 180);
+  sliderPause = new GeserVolume(VW / 2 - 100, 495, 200);
 }
 
 // Fungsi mulaiTransformPopup: Menyiapkan popup: layar digelapkan dan popup di-scale membesar (animasi) memakai transformasi.
@@ -708,11 +776,11 @@ void mulaiTransformPopup() {
   popupAnim = lerp(popupAnim, 1, 0.2);
   noStroke();
   fill(0, 0, 0, 150 * popupAnim);
-  rect(0, 0, width, height);
+  rect(0, 0, VW, VH);
   pushMatrix();
-  translate(width / 2, height / 2);
+  translate(VW / 2, VH / 2);
   scale(0.8 + 0.2 * popupAnim);
-  translate(-width / 2, -height / 2);
+  translate(-VW / 2, -VH / 2);
 }
 
 // Fungsi panel: Menggambar panel popup (bayangan, kotak putih, header berwarna, judul).
@@ -766,7 +834,7 @@ void gambarBanner(int idx, float x, float y, float w, float h) {
 // Fungsi gambarPopupAturan: Popup aturan level: misi, daftar aturan, dan tombol mulai.
 void gambarPopupAturan() {
   mulaiTransformPopup();
-  float w = 660, h = 450, x = (width - w) / 2, y = (height - h) / 2;
+  float w = 660, h = 450, x = (VW - w) / 2, y = (VH - h) / 2;
   panel(x, y, w, h, "LEVEL " + level + "  -  " + lv.nama, lv.cAtas == color(245, 250, 255) ? ungu : darker(lv.cAtas));
 
   gambarBanner(level, x + 28, y + 74, 220, 124);
@@ -807,7 +875,7 @@ color darker(color c) {
 // Fungsi gambarOverlayPause: Popup pause: tombol lanjut, aturan, menu utama, dan slider volume.
 void gambarOverlayPause() {
   mulaiTransformPopup();
-  panel(width / 2 - 170, 190, 340, 340, "PAUSE", ungu);
+  panel(VW / 2 - 170, 190, 340, 340, "PAUSE", ungu);
   btnLanjut.display();
   btnAturan.display();
   btnMenuPause.display();
@@ -818,18 +886,18 @@ void gambarOverlayPause() {
 // Fungsi gambarPopupLevelSelesai: Popup level selesai: statistik level dan tombol level berikutnya.
 void gambarPopupLevelSelesai() {
   mulaiTransformPopup();
-  panel(width / 2 - 200, 130, 400, 400, "LEVEL " + level + " SELESAI!", color(45, 160, 60));
+  panel(VW / 2 - 200, 130, 400, 400, "LEVEL " + level + " SELESAI!", color(45, 160, 60));
   fill(35, 85, 45);
   textAlign(CENTER, CENTER);
   textSize(18);
-  text(lv.nama, width / 2, 215);
+  text(lv.nama, VW / 2, 215);
   textSize(17);
-  text("Koin level ini : " + (jumlahKoin - koinAwalLevel), width / 2, 255);
-  text("Bonus selesai : +500", width / 2, 285);
-  text("Nyawa tersisa : " + nyawa, width / 2, 315);
+  text("Koin level ini : " + (jumlahKoin - koinAwalLevel), VW / 2, 255);
+  text("Bonus selesai : +" + (modePractice ? 0 : 500), VW / 2, 285);
+  text("Nyawa tersisa : " + nyawa, VW / 2, 315);
   fill(180, 130, 20);
   textSize(22);
-  text("SKOR  " + skor, width / 2, 355);
+  text("SKOR  " + skor, VW / 2, 355);
   btnAksi1.label = "LEVEL BERIKUTNYA";
   btnAksi1.display();
   btnAksi2.display();
@@ -839,17 +907,17 @@ void gambarPopupLevelSelesai() {
 // Fungsi gambarPopupMenang: Popup tamat game: skor akhir dan tombol main lagi.
 void gambarPopupMenang() {
   mulaiTransformPopup();
-  panel(width / 2 - 220, 120, 440, 420, "SELAMAT! BOUNCE TAMAT", color(230, 160, 20));
+  panel(VW / 2 - 220, 120, 440, 420, "SELAMAT! BOUNCE TAMAT", color(230, 160, 20));
   fill(35, 85, 45);
   textAlign(CENTER, CENTER);
   textSize(17);
-  text("Kamu menyelesaikan semua " + JUMLAH_LEVEL + " level:", width / 2, 210);
-  text("Padang Hujan, Salju, Istana Es,", width / 2, 238);
-  text("Goa Kristal, dan Kawah Lava.", width / 2, 262);
-  text("Total koin : " + jumlahKoin, width / 2, 305);
+  text("Kamu menyelesaikan semua " + JUMLAH_LEVEL + " level:", VW / 2, 210);
+  text("Padang Hujan, Salju, Istana Es,", VW / 2, 238);
+  text("Goa Kristal, dan Kawah Lava.", VW / 2, 262);
+  text("Total koin : " + jumlahKoin, VW / 2, 305);
   fill(180, 130, 20);
   textSize(24);
-  text("SKOR AKHIR  " + skor, width / 2, 345);
+  text("SKOR AKHIR  " + skor, VW / 2, 345);
   btnAksi1.label = "MAIN LAGI";
   btnAksi1.display();
   btnAksi2.display();
@@ -859,35 +927,29 @@ void gambarPopupMenang() {
 // Fungsi gambarPopupKalah: Popup game over: skor dan tombol coba lagi.
 void gambarPopupKalah() {
   mulaiTransformPopup();
-  panel(width / 2 - 200, 150, 400, 360, "GAME OVER", color(215, 55, 45));
+  panel(VW / 2 - 200, 150, 400, 360, "GAME OVER", color(215, 55, 45));
   fill(35, 85, 45);
   textAlign(CENTER, CENTER);
   textSize(18);
-  text("Nyawa habis di level " + level + " - " + lv.nama, width / 2, 235);
+  text("Nyawa habis di level " + level + " - " + lv.nama, VW / 2, 235);
   textSize(21);
-  text("Skor : " + skor, width / 2, 285);
+  text("Skor : " + skor, VW / 2, 285);
   btnAksi1.label = "COBA LAGI";
   btnAksi1.display();
   btnAksi2.display();
   popMatrix();
 }
 
-// Fungsi latarMenu: Latar layar menu memakai gambar background yang bergulir.
-void latarMenu() {
-  gambarBg(0, waktuAnimasi * 25, color(100, 180, 255), color(215, 240, 255));
-}
 
-// Fungsi bolaHias: Menggambar bola merah dari ellipse (dipakai menu, banner, loading).
+// Fungsi bolaHias: Menggambar bola dengan skin yang sedang dipakai (dipakai menu, banner, loading).
 void bolaHias(float x, float y, float r) {
   noStroke();
   fill(0, 0, 0, 40);
   ellipse(x, 600, r * 1.6, 8);
-  fill(195, 35, 35);
-  ellipse(x, y, r * 2, r * 2);
-  fill(235, 55, 45);
-  ellipse(x - 2, y - 2, r * 1.75, r * 1.75);
-  fill(255, 150, 125, 190);
-  ellipse(x - r * 0.35, y - r * 0.4, r * 0.3, r * 0.3);
+  pushMatrix();
+  translate(x, y);
+  bolaSkin(skinAktif, r, x * 0.05);
+  popMatrix();
 }
 
 // Fungsi gambarMenu: Layar menu utama: bola memantul, judul, dan tombol.
@@ -895,30 +957,34 @@ void gambarMenu() {
   latarMenu();
 
   // Bola hias berjalan melintas layar, memantul dengan abs(sin).
-  float bx = wrap(waktuAnimasi * 70, width + 100) - 50;
+  float bx = wrap(waktuAnimasi * 70, VW + 100) - 50;
   float by = 590 - abs(sin(waktuAnimasi * 3)) * 140;
   bolaHias(bx, by, 22);
 
-  float ly = 190 + sin(waktuAnimasi * 2) * 5;
+  float ly = 140 + sin(waktuAnimasi * 2) * 5;
   textAlign(CENTER, CENTER);
   textSize(76);
   fill(20, 70, 30);
-  text("BOUNCE", width / 2 + 4, ly + 5);
+  text("BOUNCE", VW / 2 + 4, ly + 5);
   fill(60, 185, 70);
-  text("BOUNCE", width / 2, ly);
+  text("BOUNCE", VW / 2, ly);
 
   textAlign(CENTER, CENTER);
   fill(35, 110, 55);
   textSize(18);
-  text("PETUALANGAN 5 DUNIA", width / 2, 312);
+  text("PETUALANGAN 5 DUNIA", VW / 2, 222);
 
   btnMulai.display();
   btnPilih.display();
+  btnPractice.display();
+  btnToko.display();
+  btnPrestasi.display();
   btnPetunjuk.display();
+  lencanaKoin(VW - 100, 34);
 
   fill(40, 100, 55);
   textSize(12);
-  text("FINAL PROJECT - COMPUTER GRAPHICS  |  PROCESSING JAVA MODE", width / 2, 560);
+  text("FINAL PROJECT - COMPUTER GRAPHICS  |  PROCESSING JAVA MODE", VW / 2, 560);
   sliderMenu.display();
 }
 
@@ -929,16 +995,16 @@ void gambarPetunjuk() {
   textAlign(CENTER, CENTER);
   fill(35, 105, 50);
   textSize(36);
-  text("CARA BERMAIN", width / 2, 50);
+  text("CARA BERMAIN", VW / 2, 50);
 
   noStroke();
   fill(255, 255, 245, 235);
-  float boxX = (width - 740) / 2; // Menghitung posisi kotak agar selalu di tengah
+  float boxX = (VW - 740) / 2; // Menghitung posisi kotak agar selalu di tengah
   rect(boxX, 85, 740, 250, 18);
 
   fill(35, 105, 50);
   textSize(20);
-  text("KONTROL", width / 2, 110);
+  text("KONTROL", VW / 2, 110);
 
   textAlign(LEFT, CENTER);
   fill(35, 75, 45);
@@ -949,12 +1015,15 @@ void gambarPetunjuk() {
     {"P / ESC", "Jeda atau lanjutkan"},
     {"H", "Buka aturan level"},
     {"M", "Suara on / mute"},
+    {"F11", "Layar penuh murni on / off (Alt+Tab untuk minimize)"},
+    {"B", "Tampilkan hitbox (bola, duri, koin, platform)"},
+    {"C / X", "Practice mode: pasang / hapus checkpoint"},
     {"MOUSE", "Memilih tombol dan mengatur volume"}
   };
   // Perulangan for: tampilkan setiap baris tabel kontrol.
   for (int i = 0; i < kontrol.length; i++) {
-    text(kontrol[i][0], boxX + 40, 148 + i * 30);
-    text(kontrol[i][1], boxX + 340, 148 + i * 30);
+    text(kontrol[i][0], boxX + 40, 140 + i * 23);
+    text(kontrol[i][1], boxX + 300, 140 + i * 23);
   }
 
   noStroke();
@@ -964,15 +1033,15 @@ void gambarPetunjuk() {
   textAlign(CENTER, CENTER);
   fill(35, 105, 50);
   textSize(20);
-  text("DUNIA & BAHAYA", width / 2, 375);
+  text("DUNIA & BAHAYA", VW / 2, 375);
 
   fill(35, 75, 45);
   textSize(15);
-  text("Level 1 Padang Hujan  -  Level 2 Gunung Salju (licin)", width / 2, 410);
-  text("Level 3 Istana Es (sangat licin, platform bergerak)  -  Level 4 Goa Kristal (gelap)", width / 2, 438);
-  text("Level 5 Kawah Lava (Duri sepanjang jalan). Jatuh/Kena Duri = kurang nyawa.", width / 2, 476);
-  text("Koin +100, checkpoint +250, selesai level +500. Capai portal hijau di ujung level.", width / 2, 504);
-  text("Setiap level punya loading dan popup aturan sendiri.", width / 2, 532);
+  text("Level 1 Padang Hujan  -  Level 2 Gunung Salju (licin)", VW / 2, 410);
+  text("Level 3 Istana Es (sangat licin, platform bergerak)  -  Level 4 Goa Kristal (gelap)", VW / 2, 438);
+  text("Level 5 Kawah Lava (lava di dasar arena). Jatuh/Kena Duri = kurang nyawa.", VW / 2, 476);
+  text("Koin +100, checkpoint +250, selesai level +500. Capai portal hijau di ujung level.", VW / 2, 504);
+  text("Koin dibawa permanen: belanjakan di TOKO SKIN, raih PENCAPAIAN untuk hadiah koin.", VW / 2, 532);
 
   btnKembali.display();
 }
@@ -984,12 +1053,17 @@ void gambarPilihLevel() {
   textAlign(CENTER, CENTER);
   fill(35, 105, 50);
   textSize(36);
-  text("PILIH LEVEL", width / 2, 70);
+  text(modePractice ? "PRACTICE MODE" : "PILIH LEVEL", VW / 2, 70);
+  if (modePractice) {
+    fill(110, 70, 190);
+    textSize(14);
+    text("Nyawa tak terbatas  |  Koin tidak bisa diambil  |  C : checkpoint sendiri", VW / 2, 98);
+  }
 
   // Mengatur matriks agar semua kartu otomatis berada tepat di tengah layar penuh
   pushMatrix();
   float totalLebar = (JUMLAH_LEVEL * 205 - 15) * 0.85; // Lebar total semua kartu beserta jaraknya
-  float startX = (width - totalLebar) / 2;             // Menghitung titik awal perataan tengah
+  float startX = (VW - totalLebar) / 2;             // Menghitung titik awal perataan tengah
 
   translate(startX, 0);
   scale(0.85); // Dikecilkan sedikit agar ke-5 kartu dapat termuat rapi
@@ -1000,7 +1074,7 @@ void gambarPilihLevel() {
     float y = 130;
 
     // Logika perhitungan batas kursor (hover hitbox) dengan mempertimbangkan perataan tengah
-    boolean hv = mouseX >= (x * 0.85 + startX) && mouseX <= ((x + 190) * 0.85 + startX) && mouseY >= (y * 0.85) && mouseY <= ((y + 340) * 0.85);
+    boolean hv = mx() >= (x * 0.85 + startX) && mx() <= ((x + 190) * 0.85 + startX) && my() >= (y * 0.85) && my() <= ((y + 340) * 0.85);
 
     Level L = infoLevel(i);
 
@@ -1035,22 +1109,19 @@ void gambarPilihLevel() {
     textAlign(CENTER, CENTER);
     textSize(14);
     text("MAIN", x + 95, y + 306);
-
-    // Penanganan saat kartu level diklik
-    if (hv && mousePressed && gameState == PILIH) {
-        klik();
-        mulaiGameBaru(i);
-        gameState = LOADING;
-    }
   }
   popMatrix();
 
   btnKembali.display();
 }
 
-// Fungsi kartuHover sudah dipindahkan ke fungsi gambarPilihLevel untuk memfasilitasi skalabilitas rasio layar
+// Fungsi kartuHover: true jika kursor berada di atas kartu level ke-i (dipanggil dari mousePressed, sekali per klik).
 boolean kartuHover(int i) {
-  return false;
+  float totalLebar = (JUMLAH_LEVEL * 205 - 15) * 0.85;
+  float startX = (VW - totalLebar) / 2;
+  float x = (i - 1) * 205;
+  float y = 130;
+  return mx() >= (x * 0.85 + startX) && mx() <= ((x + 190) * 0.85 + startX) && my() >= (y * 0.85) && my() <= ((y + 340) * 0.85);
 }
 
 // Fungsi gambarLoading: Layar loading tiap level: progress bar, membangun level dan memuat audio bertahap, lalu membuka popup aturan.
@@ -1067,6 +1138,7 @@ void gambarLoading() {
   // Tahap loading 2: muat dan putar musik level.
   if (p >= 0.7 && !audioSiap) {
     mainkanBgm(lv.indexBgm);
+    mainkanAmbient(level);
     audioSiap = true;
   }
   if (p >= 0.35) pesan = "Membangun level...";
@@ -1078,13 +1150,13 @@ void gambarLoading() {
   textAlign(CENTER, CENTER);
   fill(255);
   textSize(20);
-  text("LEVEL " + level, width / 2, 60);
+  text("LEVEL " + level, VW / 2, 60);
   textSize(46);
-  text(lv.nama, width / 2, 105);
+  text(lv.nama, VW / 2, 105);
 
-  gambarBanner(level, width / 2 - 220, 150, 440, 250);
+  gambarBanner(level, VW / 2 - 220, 150, 440, 250);
 
-  float bx = width / 2 - 250, by = 470, bw = 500, bh = 22;
+  float bx = VW / 2 - 250, by = 470, bw = 500, bh = 22;
   noStroke();
   fill(0, 0, 0, 90);
   rect(bx - 4, by - 4, bw + 8, bh + 8, 14);
@@ -1097,10 +1169,10 @@ void gambarLoading() {
 
   fill(255);
   textSize(15);
-  text(pesan + "  " + floor(p * 100) + "%", width / 2, by + 48);
+  text(pesan + "  " + floor(p * 100) + "%", VW / 2, by + 48);
   textSize(13);
   fill(255, 255, 255, 220);
-  text(lv.tip, width / 2, by + 80);
+  text(lv.tip, VW / 2, by + 80);
 
   // Loading selesai: buka popup aturan.
   if (loadTimer >= DURASI_LOADING && levelDibuat) {
@@ -1111,10 +1183,14 @@ void gambarLoading() {
 
 // Objek suara: efek (sfx) dan musik latar (bgm).
 SoundFile sfxLompat, sfxKoin, sfxKena, sfxCheckpoint, sfxMenang, sfxKlik;
+// Suara latar (ambien) tiap tema level: hujan, angin, denting es, tetesan goa, gemuruh lava.
+SoundFile[] amb = new SoundFile[JUMLAH_LEVEL + 1];
+String[] namaAmb = {"", "amb_hujan.wav", "amb_angin.wav", "amb_es.wav", "amb_goa.wav", "amb_lava.wav"};
+int ambAktif = -1;
 SoundFile[] bgm = new SoundFile[JUMLAH_LEVEL + 1];
 // Nama file musik latar di data/audio (Tambahin 1 bgm_level4 di ujung biar gak error di level 5)
 String[] namaBgm = {
-  "bgm_menu.wav", "bgm_level1.wav", "bgm_level2.wav", "bgm_level3.wav", "bgm_level4.wav", "bgm_level4.wav"
+  "bgm_menu.wav", "bgm_level1.wav", "bgm_level2.wav", "bgm_level3.wav", "bgm_level4.wav", "bgm_level5.wav"
 };
 
 // Pengaturan volume, mute, dan musik yang sedang aktif.
@@ -1157,6 +1233,8 @@ void muatSemuaSfx() {
   sfxCheckpoint = muatSuara("checkpoint.wav");
   sfxMenang = muatSuara("menang.wav");
   sfxKlik = muatSuara("klik.wav");
+  sfxPrestasi = muatSuara("achievement.wav");
+  sfxBeli = muatSuara("beli.wav");
 }
 
 // Fungsi mainkanSfx: Memutar satu efek suara dengan volume saat ini (kecuali mute).
@@ -1189,12 +1267,37 @@ void hentikanBgm() {
     bgm[bgmAktif].stop();
   }
   bgmAktif = -1;
+  hentikanAmbient();
+}
+
+// Fungsi mainkanAmbient: Memutar suara latar sesuai tema level (hujan, angin, dll) berulang-ulang.
+void mainkanAmbient(int i) {
+  if (ambAktif == i) return;
+  hentikanAmbient();
+  if (i < 1 || i >= namaAmb.length) return;
+  if (amb[i] == null) amb[i] = muatSuara(namaAmb[i]);
+  ambAktif = i;
+  if (amb[i] != null) {
+    amb[i].loop();
+    amb[i].amp(senyap ? 0 : volume * 0.45);
+  }
+}
+
+// Fungsi hentikanAmbient: Menghentikan suara latar yang sedang aktif.
+void hentikanAmbient() {
+  if (ambAktif >= 0 && amb[ambAktif] != null) {
+    amb[ambAktif].stop();
+  }
+  ambAktif = -1;
 }
 
 // Fungsi terapkanVolume: Menerapkan volume/mute ke musik latar yang sedang berjalan.
 void terapkanVolume() {
   if (bgmAktif >= 0 && bgm[bgmAktif] != null) {
     bgm[bgmAktif].amp(senyap ? 0 : volume * 0.5);
+  }
+  if (ambAktif >= 0 && amb[ambAktif] != null) {
+    amb[ambAktif].amp(senyap ? 0 : volume * 0.45);
   }
 }
 
@@ -1206,21 +1309,21 @@ void gambarBg(int idx, float geser, color a, color b) {
     gradien(a, b);
     return;
   }
-  float w = im.width * (height / (float) im.height);
+  float w = im.width * (VH / (float) im.height);
   int n = floor(geser / w);
   float x = -(geser - n * w);
   int i = 0;
   // Perulangan while: tempel tile gambar sampai menutupi lebar layar.
-  while (x < width) {
+  while (x < VW) {
     // Tile ganjil dicerminkan (scale -1) agar sambungan gambar mulus.
     if ((n + i) % 2 != 0) {
       pushMatrix();
       translate(x + w, 0);
       scale(-1, 1);
-      image(im, 0, 0, w, height);
+      image(im, 0, 0, w, VH);
       popMatrix();
     } else {
-      image(im, x, 0, w, height);
+      image(im, x, 0, w, VH);
     }
     x += w;
     i++;

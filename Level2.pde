@@ -1,5 +1,9 @@
+// =====================================================
 // LEVEL 2 - GUNUNG SALJU
-// Fungsi infoLevel sbg data awal
+//   Data level, susunan objek, dan latar. Tema: salju, lantai agak licin.
+// =====================================================
+
+// Fungsi infoLevel2: Data Level 2 Gunung Salju: lantai agak licin, cuaca salju.
 Level infoLevel2() {
   Level L = new Level();
   // Identitas dan teks level.
@@ -68,9 +72,4 @@ void bangunLevel2() {
   tambahKoin(2550, 445);
   tambahKoin(2790, 375);
   tambahKoin(3180, 445);
-}
-
-// Fungsi latarLevel2: Latar Level 2 memakai gambar bg2.png.
-void latarLevel2() {
-  gambarBg(2, cameraX * 0.3, lv.langitA, lv.langitB);
 }

@@ -1,12 +1,17 @@
+// =====================================================
 // LEVEL 5 - KAWAH LAVA
-// Fungsi infoLevel sbg data awal
+// Tema: Gunung Berapi
+// =====================================================
+
+// Inisialisasi data utama untuk Level 5
 Level infoLevel5() {
   Level L = new Level();
   L.id = 5;
   L.nama = "KAWAH LAVA";
   L.tujuan = "Lompati platform di atas lautan lava panas. Hindari jatuh ke dasar arena.";
   L.tip = "Tip: Perhatikan jeda waktu (timing) saat melompat di platform yang bergerak cepat.";
-   // Daftar aturan yang tampil di popup.
+  
+  // Daftar aturan yang akan ditampilkan pada antarmuka awal level
   L.aturan = new String[] {
     "Dasar arena dipenuhi oleh aliran lava bersuhu tinggi.",
     "Jatuh dan menyentuh permukaan lava akan langsung mengurangi nyawa pemain.",
@@ -17,13 +22,13 @@ Level infoLevel5() {
   // Konfigurasi ukuran arena, posisi checkpoint, dan titik portal keluar
   L.lebar = 4200;
   L.cpX = 2100;
-  L.cpY = 500;   
-  L.exitY = 420; 
+  L.cpY = 500;   // Penyesuaian koordinat Y mengikuti elevasi platform
+  L.exitY = 420; // Penyesuaian elevasi untuk platform akhir
   
   // Konfigurasi fisika lingkungan dan musik latar
-  L.traksi = 0.8; 
-  L.tipeCuaca = C_NONE;
-  L.indexBgm = 4; 
+  L.traksi = 0.8; // Pengurangan sedikit nilai traksi untuk menyimulasikan efek abu vulkanik
+  L.tipeCuaca = C_NONE; // Efek cuaca dasar dinonaktifkan, diganti dengan efek lava kustom pada fungsi latar
+  L.indexBgm = 5; // BGM khusus kawah lava (bgm_level5.wav)
   
   // Pengaturan palet warna untuk tema kawah vulkanik (merah, oranye, dan coklat)
   L.cTanah = color(50, 20, 15);
@@ -84,6 +89,7 @@ void latarLevel5() {
   
   // Penerapan tiga lapisan siluet pegunungan menggunakan kurva Bezier untuk memberikan efek kedalaman (parallax)
   bukit(cameraX * 0.1, 380, 150, 600, color(40, 15, 10));
+  gunungMeletus(cameraX * 0.15); // gunung berapi meletus
   bukit(cameraX * 0.2, 450, 120, 450, color(60, 20, 15));
   bukit(cameraX * 0.3, 520, 90, 300, color(80, 25, 15)); 
   
@@ -92,8 +98,8 @@ void latarLevel5() {
   randomSeed(5);
   noStroke();
   for(int i = 0; i < 40; i++) {
-    float px = wrap(random(width * 2) - cameraX * 0.5, width + 100) - 50;
-    float py = wrap(random(height) - waktuAnimasi * (20 + random(10)), height + 50) - 20;
+    float px = wrap(random(VW * 2) - cameraX * 0.5, VW + 100) - 50;
+    float py = wrap(random(VH) - waktuAnimasi * (20 + random(10)), VH + 50) - 20;
     fill(255, random(100, 200), 0, random(50, 150));
     ellipse(px, py, random(3, 8), random(3, 8));
   }
@@ -101,7 +107,7 @@ void latarLevel5() {
   // Pembangkitan efek percikan magma (lava splashes) secara dinamis di sekitar permukaan
   randomSeed(15);
   for (int i = 0; i < 30; i++) {
-    float px = wrap(random(width * 2) - cameraX * 0.6, width + 100) - 50;
+    float px = wrap(random(VW * 2) - cameraX * 0.6, VW + 100) - 50;
     float siklus = (waktuAnimasi * random(1.5, 3.5) + i * 10) % 60;
     
     // Merender percikan hanya pada fase awal siklus untuk menyimulasikan letupan singkat
@@ -118,32 +124,32 @@ void latarLevel5() {
   fill(180, 40, 5, 200);
   float xLavaB = - (cameraX * 0.3) % 150;
   beginShape();
-  vertex(xLavaB - 150, height);
+  vertex(xLavaB - 150, VH);
   vertex(xLavaB - 150, 590);
   
   // Perulangan untuk membentuk gelombang secara dinamis menggunakan fungsi bezierVertex
-  for(float i = xLavaB; i <= width + 150; i += 150) {
+  for(float i = xLavaB; i <= VW + 150; i += 150) {
      float yWave = 590 + sin(waktuAnimasi * 1.5 + i) * 15;
      bezierVertex(i + 50, yWave - 20, i + 100, yWave + 20, i + 150, yWave);
   }
-  vertex(width + 150, height);
+  vertex(VW + 150, VH);
   endShape(CLOSE);
   
   // --- LAPISAN LAVA DEPAN (Warna lebih terang dengan laju pergerakan lebih cepat) ---
   fill(230, 60, 10, 220);
   float xLavaD = - (cameraX * 0.5) % 120;
   beginShape();
-  vertex(xLavaD - 120, height);
+  vertex(xLavaD - 120, VH);
   vertex(xLavaD - 120, 610);
-  for(float i = xLavaD; i <= width + 120; i += 120) {
+  for(float i = xLavaD; i <= VW + 120; i += 120) {
      float yWave = 610 + cos(waktuAnimasi * 3.0 + i) * 12;
      bezierVertex(i + 40, yWave - 15, i + 80, yWave + 15, i + 120, yWave);
   }
-  vertex(width + 120, height);
+  vertex(VW + 120, VH);
   endShape(CLOSE);
   
   // Pemberian efek pendaran cahaya panas (glow) yang berdenyut menggunakan fungsi sinusoidal
   float glowPanas = 150 + sin(waktuAnimasi * 4) * 40;
   fill(255, 90, 0, glowPanas / 4);
-  rect(0, 560, width, height - 560);
+  rect(0, 560, VW, VH - 560);
 }
