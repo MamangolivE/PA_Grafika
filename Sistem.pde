@@ -620,27 +620,23 @@ void gambarHitbox() {
 
   if (!modePractice) { // koin
     stroke(255, 230, 60);
-    for (Coin c : coins) if (!c.terambil) ellipse(c.x, c.y, c.r * 2, c.r * 2);
+    for (Coin c : coins) if (!c.terambil) ellipse(c.x, c.y, c.rKini() * c.skalaX() * 2, c.rKini() * 2);
   }
 
-  stroke(255, 230, 60, 130); // batas sentuh koin pada bola
-  ellipse(player.x, player.y, (player.r + 2) * 2, (player.r + 2) * 2);
-  stroke(60, 255, 90); // badan bola (tabrakan platform)
+  stroke(60, 255, 90); // badan bola (platform, koin, duri: semuanya memakai lingkaran yang sama dengan gambar bola)
   ellipse(player.x, player.y, player.r * 2, player.r * 2);
-  stroke(255, 50, 50); // hitbox bahaya bola (duri)
-  ellipse(player.x, player.y, player.rBahaya * 2, player.rBahaya * 2);
   noStroke();
 }
 
 void gambarLegendaHitbox() {
-  float x = 15, y = VH - 112;
+  float x = 15, y = VH - 96;
   noStroke();
   fill(0, 0, 0, 170);
-  rect(x, y, 300, 98, 9);
+  rect(x, y, 300, 81, 9);
   textAlign(LEFT, CENTER);
   textSize(12);
-  String[] ket = {"Badan bola (platform)", "Hitbox bahaya bola (duri)", "Koin / batas sentuh koin", "Duri", "Platform"};
-  color[] war = {color(60, 255, 90), color(255, 50, 50), color(255, 230, 60), color(255, 140, 0), color(255)};
+  String[] ket = {"Bola (platform, koin, duri)", "Koin (elips sesuai putaran)", "Duri", "Platform"};
+  color[] war = {color(60, 255, 90), color(255, 230, 60), color(255, 140, 0), color(255)};
   for (int i = 0; i < ket.length; i++) {
     fill(war[i]);
     rect(x + 12, y + 12 + i * 17, 14, 4, 2);

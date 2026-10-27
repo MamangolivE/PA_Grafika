@@ -199,7 +199,7 @@ class Platform {
     pushMatrix();
     translate(x + w / 2, y + 5, 0);
     fill(lv.cAtas);
-    box(w + 2, 10, 60);
+    box(w, 10, 60);
     popMatrix();
 
     // Tambahkan efek garis batas/pencahayaan tipis di tepi atas
@@ -239,9 +239,9 @@ class MovingPlatform extends Platform {
     super.display();
 
     pushMatrix();
-    translate(x + w / 2, y + h + 2, 0);
+    translate(x + w / 2, y + h - 2, 29);
     fill(255, 215, 60);
-    box(w * 0.6, 4, 30);
+    box(w * 0.6, 4, 4);
     popMatrix();
   }
 }
@@ -311,7 +311,6 @@ class Spike {
 // Class untuk item koin yang bisa dikumpulkan pemain
 class Coin {
   float x, y;
-  float r = 11; // jari-jari hitbox koin (sama dengan ukuran gambar koin)
   boolean terambil = false;
 
   Coin(float x, float y) {
@@ -319,12 +318,22 @@ class Coin {
     this.y = y;
   }
 
+  // Jari-jari koin saat ini (berdenyut) dan skala lebarnya (putaran semu). Dipakai oleh gambar DAN hitbox
+  // sehingga bentuk hitbox koin selalu sama persis dengan bentuk koin yang terlihat.
+  float rKini() {
+    return (18 + sin(waktuAnimasi * 3 + x) * 2 + 4) / 2;
+  }
+
+  float skalaX() {
+    return max(0.18, abs(cos(waktuAnimasi * 2 + x * 0.01)));
+  }
+
   // Menampilkan koin dengan efek animasi berputar menggunakan skala yang diubah-ubah
   void display() {
     if (terambil) return;
 
     // Bikin ukuran koin seolah berdenyut
-    float ukuran = 18 + sin(waktuAnimasi * 3 + x) * 2;
+    float ukuran = 2 * rKini() - 4;
 
     pushMatrix();
     translate(x, y);
@@ -333,7 +342,7 @@ class Coin {
     ellipse(0, 0, ukuran * 2.2, ukuran * 2.2);
 
     // Animasi putaran semu koin menggunakan fungsi cos pada parameter scale
-    scale(max(0.18, abs(cos(waktuAnimasi * 2 + x * 0.01))), 1);
+    scale(skalaX(), 1);
     fill(200, 140, 10);
     ellipse(0, 0, ukuran + 4, ukuran + 4);
     fill(255, 205, 35);
@@ -350,7 +359,7 @@ class Player {
   float vx = 0;
   float vy = 0;
   float r = 18;           // jari-jari hitbox badan (lingkaran, sama dengan ukuran gambar bola)
-  float rBahaya = 13;     // hitbox bahaya (duri) sedikit lebih kecil dari badan agar adil
+  float rBahaya = 18;     // hitbox bahaya (duri) = badan bola yang terlihat (1:1)
   float kecepatan = 4.5;
   float gravitasi = 0.48;
   float kekuatanLompat = -10.5;
@@ -478,9 +487,7 @@ class Player {
     pushMatrix();
     translate(x, y);
 
-    // Animasi deformasi (squash and stretch) menyesuaikan kecepatan jatuh bola
-    float s = 1 + constrain(vy * 0.012, -0.12, 0.12);
-    scale(1 / s, s);
+    // (Deformasi squash/stretch dimatikan agar bentuk bola selalu lingkaran = hitbox.)
 
     noStroke();
     if (lv.gelap) {
@@ -490,7 +497,7 @@ class Player {
       ellipse(0, 0, r * 3.2, r * 3.2);
     }
 
-    bolaSkin(skinAktif, r, putar);
+    bolaSkin(skinAktif, r - 2, putar); // r - 2 karena outline +2 => lingkaran terlihat tepat berjari-jari r
 
     popMatrix();
   }
@@ -573,12 +580,36 @@ void updateGame() {
   kilat *= 0.92;
 }
 
+// Jarak dari titik (px, py) ke elips terisi berpusat di (0,0) dengan jari-jari rx, ry (0 jika di dalam).
+float jarakKeElips(float px, float py, float rx, float ry) {
+  px = abs(px);
+  py = abs(py);
+  if ((px * px) / (rx * rx) + (py * py) / (ry * ry) <= 1) return 0;
+  float tx = 0.707, ty = 0.707;
+  for (int i = 0; i < 4; i++) {
+    float ex = (rx * rx - ry * ry) * tx * tx * tx / rx;
+    float ey = (ry * ry - rx * rx) * ty * ty * ty / ry;
+    float rrx = rx * tx - ex, rry = ry * ty - ey;
+    float qx = px - ex, qy = py - ey;
+    float rr = sqrt(rrx * rrx + rry * rry);
+    float q = sqrt(qx * qx + qy * qy);
+    if (q < 0.0001) break;
+    tx = constrain((qx * rr / q + ex) / rx, 0, 1);
+    ty = constrain((qy * rr / q + ey) / ry, 0, 1);
+    float t = sqrt(tx * tx + ty * ty);
+    if (t < 0.0001) break;
+    tx /= t;
+    ty /= t;
+  }
+  return dist(rx * tx, ry * ty, px, py);
+}
+
 // Cek apakah pemain menyentuh area koin yang belum diambil
 void periksaKoin() {
   if (modePractice) return; // practice mode: koin tidak bisa diambil
   for (Coin c : coins) {
-    // Kena tepat saat lingkaran bola (r + 2 outline) dan lingkaran koin saling bersentuhan.
-    if (!c.terambil && dist(player.x, player.y, c.x, c.y) < player.r + 2 + c.r) {
+    // Kena tepat saat lingkaran bola menyentuh bentuk koin yang terlihat (elips berdenyut/berputar).
+    if (!c.terambil && jarakKeElips(player.x - c.x, player.y - c.y, c.rKini() * c.skalaX(), c.rKini()) < player.r) {
       c.terambil = true;
       skor += 100;
       jumlahKoin++;

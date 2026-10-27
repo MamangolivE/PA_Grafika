@@ -129,6 +129,9 @@ void draw() {
   waktuAnimasi += 0.04;
   // Bersihkan layar dan depth buffer.
   background(0);
+  // Proyeksi ortografis: objek di kedalaman (z) berbeda tidak diperbesar/dikecilkan oleh perspektif,
+  // sehingga posisi & ukuran yang terlihat SAMA PERSIS (1:1) dengan hitbox fisikanya.
+  ortho(-width / 2.0, width / 2.0, -height / 2.0, height / 2.0);
   // Matikan depth test agar gambar 2D (latar, HUD) tidak saling menutupi.
   hint(DISABLE_DEPTH_TEST);
   pushMatrix();
