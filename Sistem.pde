@@ -114,6 +114,43 @@ void bolaSkin(int s, float r, float rot) {
   popMatrix();
 }
 
+void bola3D(float x, float y, float r, int s, float rot) {
+  hint(ENABLE_DEPTH_TEST);
+  lightFalloff(1, 0, 0);
+  ambientLight(120, 120, 120);
+  directionalLight(230, 230, 230, -0.4, 0.6, -1);
+  pushMatrix();
+  translate(x, y, 0);
+  rotateX(0.4);
+  rotateY(rot);
+  noStroke();
+  fill(skinTengah[s]);
+  sphere(r);
+  fill(skinTerang[s]);
+  translate(r * 0.6, -r * 0.3, r * 0.7);
+  sphere(r * 0.2);
+  popMatrix();
+  noLights();
+  hint(DISABLE_DEPTH_TEST);
+}
+
+void kotak3D(float x, float y, float s, float rot, color c) {
+  hint(ENABLE_DEPTH_TEST);
+  lightFalloff(1, 0, 0);
+  ambientLight(120, 120, 120);
+  directionalLight(230, 230, 230, -0.4, 0.6, -1);
+  pushMatrix();
+  translate(x, y, 0);
+  rotateX(0.5);
+  rotateY(rot);
+  noStroke();
+  fill(c);
+  box(s);
+  popMatrix();
+  noLights();
+  hint(DISABLE_DEPTH_TEST);
+}
+
 // ---------- DATA PERMANEN ----------
 int dompet = 0;               // koin permanen yang bisa dibelanjakan
 int statKoinTotal = 0;        // total koin yang pernah diambil
@@ -507,7 +544,7 @@ void gambarToko() {
     ellipse(cx, cy + 56, 70, 10);
     pushMatrix();
     translate(cx, cy);
-    bolaSkin(i, 38, waktuAnimasi * 2);
+    bola3D(0, 0, 38, i, waktuAnimasi * 2);
     popMatrix();
 
     fill(35, 85, 45);

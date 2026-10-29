@@ -109,27 +109,29 @@ void latarLevel5() {
   for (int i = 0; i < 30; i++) {
     float px = wrap(random(VW * 2) - cameraX * 0.6, VW + 100) - 50;
     float siklus = (waktuAnimasi * random(1.5, 3.5) + i * 10) % 60;
+    float wr = random(120, 200), sw = random(4, 7), sh = random(6, 12);
     
     // Merender percikan hanya pada fase awal siklus untuk menyimulasikan letupan singkat
     if (siklus < 20) {
-      float py = 600 + sin(waktuAnimasi * 2.0 + px) * 10 - (siklus * 2.5);
+      float py = 600 + sin(waktuAnimasi * 2.0 + i) * 10 - (siklus * 2.5);
       float alphaPercikan = map(siklus, 0, 20, 255, 0);
-      fill(255, random(120, 200), 0, alphaPercikan);
-      ellipse(px, py, random(4, 7), random(6, 12));
+      fill(255, wr, 0, alphaPercikan);
+      ellipse(px, py, sw, sh);
     }
   }
   randomSeed(millis()); // Mengembalikan instansiasi seed ke fungsi millis() agar nilai acak berikutnya tetap dinamis
   
   // --- LAPISAN LAVA BELAKANG (Warna lebih gelap dengan laju pergerakan lambat) ---
   fill(180, 40, 5, 200);
-  float xLavaB = - (cameraX * 0.3) % 150;
+  int idB = floor(cameraX * 0.3 / 150);
+  float xLavaB = idB * 150 - cameraX * 0.3;
   beginShape();
   vertex(xLavaB - 150, VH);
-  vertex(xLavaB - 150, 590);
+  vertex(xLavaB, 590 + sin(waktuAnimasi * 1.5 + (idB - 1) * 1.3) * 15);
   
   // Perulangan untuk membentuk gelombang secara dinamis menggunakan fungsi bezierVertex
-  for(float i = xLavaB; i <= VW + 150; i += 150) {
-     float yWave = 590 + sin(waktuAnimasi * 1.5 + i) * 15;
+  for(float i = xLavaB, n = idB; i <= VW + 150; i += 150, n++) {
+     float yWave = 590 + sin(waktuAnimasi * 1.5 + n * 1.3) * 15;
      bezierVertex(i + 50, yWave - 20, i + 100, yWave + 20, i + 150, yWave);
   }
   vertex(VW + 150, VH);
@@ -137,12 +139,13 @@ void latarLevel5() {
   
   // --- LAPISAN LAVA DEPAN (Warna lebih terang dengan laju pergerakan lebih cepat) ---
   fill(230, 60, 10, 220);
-  float xLavaD = - (cameraX * 0.5) % 120;
+  int idD = floor(cameraX * 0.5 / 120);
+  float xLavaD = idD * 120 - cameraX * 0.5;
   beginShape();
   vertex(xLavaD - 120, VH);
-  vertex(xLavaD - 120, 610);
-  for(float i = xLavaD; i <= VW + 120; i += 120) {
-     float yWave = 610 + cos(waktuAnimasi * 3.0 + i) * 12;
+  vertex(xLavaD, 610 + cos(waktuAnimasi * 3.0 + (idD - 1) * 1.3) * 12);
+  for(float i = xLavaD, n = idD; i <= VW + 120; i += 120, n++) {
+     float yWave = 610 + cos(waktuAnimasi * 3.0 + n * 1.3) * 12;
      bezierVertex(i + 40, yWave - 15, i + 80, yWave + 15, i + 120, yWave);
   }
   vertex(VW + 120, VH);

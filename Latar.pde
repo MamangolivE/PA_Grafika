@@ -191,6 +191,19 @@ void latarMenu() {
   awan(waktuAnimasi * 10, color(255, 255, 255, 210), 40, 6);
   bukit(waktuAnimasi * 10, 470, 110, 420, color(120, 200, 140));
   bukit(waktuAnimasi * 25, 540, 90, 300, color(70, 170, 90));
+  noFill();
+  stroke(255, 255, 255, 170);
+  strokeWeight(4);
+  beginShape();
+  curveVertex(0, 628);
+  curveVertex(0, 628);
+  curveVertex(VW * 0.25, 614 + sin(waktuAnimasi) * 4);
+  curveVertex(VW * 0.5, 632);
+  curveVertex(VW * 0.75, 614 + cos(waktuAnimasi) * 4);
+  curveVertex(VW, 628);
+  curveVertex(VW, 628);
+  endShape();
+  noStroke();
 }
 
 // ---------- LEVEL 1: PADANG HUJAN ----------

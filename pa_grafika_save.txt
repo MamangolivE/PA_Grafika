@@ -1,9 +1,9 @@
-dompet=17
+dompet=513
 skinAktif=0
-koinTotal=17
-lompat=43
-mati=6
-checkpoint=2
-skorTertinggi=1150
+koinTotal=213
+lompat=297
+mati=47
+checkpoint=13
+skorTertinggi=5200
 skinMilik=1,0,0,0,0
-pencapaian=0,0,0,0,0,0,0,0,0,0,0,0,0,0
+pencapaian=1,1,0,0,1,1,0,1,1,1,1,1,0,0

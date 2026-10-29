@@ -675,22 +675,30 @@ class Tombol {
     if (hv) {
       fill(red(warna), green(warna), blue(warna), 70);
       rect(x - 4, y - 4, w + 8, h + 8, 13);
-      fill(warna);
-    } else {
-      fill(255, 255, 235);
     }
-    rect(x, y, w, h, 10);
-
-    noFill();
+    hint(ENABLE_DEPTH_TEST);
+    lightFalloff(1, 0, 0);
+    ambientLight(150, 150, 150);
+    directionalLight(170, 170, 170, -0.5, 0.7, -1);
+    pushMatrix();
+    translate(x + w / 2, y + h / 2, 100);
+    rotateX(hv ? -0.12 : -0.06);
+    rotateY(hv ? 0.1 : 0.05);
+    if (hv) fill(warna);
+    else fill(255, 255, 235);
     stroke(warna);
     strokeWeight(hv ? 2.5 : 1.5);
-    rect(x, y, w, h, 10);
+    box(w, h, 26);
+    noLights();
+
 
     noStroke();
     fill(35, 85, 45);
     textAlign(CENTER, CENTER);
     textSize(15);
-    text(label, x + w / 2, y + h / 2);
+    text(label, 0, 0, 14);
+    popMatrix();
+    hint(DISABLE_DEPTH_TEST);
   }
 }
 
@@ -760,7 +768,7 @@ void buatTombol() {
   btnToko = new Tombol(VW / 2 - 115, 392, 230, 44, "TOKO SKIN", ungu);
   btnPrestasi = new Tombol(VW / 2 - 115, 441, 230, 44, "PENCAPAIAN", ungu);
   btnPetunjuk = new Tombol(VW / 2 - 115, 490, 230, 44, "PETUNJUK", ungu);
-  btnKembali = new Tombol(VW / 2 - 110, 590, 220, 44, "KEMBALI", cyan);
+  btnKembali = new Tombol(VW / 2 - 110, 590, 220, 44, "KEMBALI", ungu);
 
   btnLanjut = new Tombol(VW / 2 - 115, 285, 230, 50, "LANJUTKAN", cyan);
   btnAturan = new Tombol(VW / 2 - 115, 347, 230, 46, "ATURAN LEVEL", ungu);
@@ -963,6 +971,8 @@ void gambarMenu() {
   float bx = wrap(waktuAnimasi * 70, VW + 100) - 50;
   float by = 590 - abs(sin(waktuAnimasi * 3)) * 140;
   bolaHias(bx, by, 22);
+  bola3D(VW / 2 - 240, 140, 34, skinAktif, waktuAnimasi * 2);
+  kotak3D(VW / 2 + 240, 140, 52, waktuAnimasi * 1.5, color(60, 185, 70));
 
   float ly = 140 + sin(waktuAnimasi * 2) * 5;
   textAlign(CENTER, CENTER);
@@ -987,6 +997,7 @@ void gambarMenu() {
 
   fill(40, 100, 55);
   textSize(12);
+  textAlign(CENTER, CENTER);
   text("FINAL PROJECT - COMPUTER GRAPHICS  |  PROCESSING JAVA MODE", VW / 2, 560);
   sliderMenu.display();
 }
@@ -1092,7 +1103,6 @@ void gambarPilihLevel() {
     rect(x, y, 190, 340, 16);
 
     gambarBanner(i, x + 10, y + 10, 170, 108);
-
     fill(35, 105, 50);
     textAlign(CENTER, CENTER);
     textSize(14);

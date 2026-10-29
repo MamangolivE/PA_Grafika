@@ -59,7 +59,7 @@ void bangunLevel4() {
 
   // Rintangan: duri lantai (x, y, jumlah) dan stalaktit menggantung.
   tambahDuri(1190, 560, 4);
-  tambahDuri(2520, 560, 3);
+  tambahDuri(2590, 560, 3);
   tambahDuri(3880, 540, 3);
 
   tambahStalaktit(1300, 390, 3);

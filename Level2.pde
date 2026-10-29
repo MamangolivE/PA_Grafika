@@ -56,7 +56,7 @@ void bangunLevel2() {
   // Rintangan: duri lantai (x, y, jumlah) dan stalaktit menggantung.
   tambahDuri(140, 560, 3);
   tambahDuri(1160, 560, 4);
-  tambahDuri(2250, 560, 3);
+  tambahDuri(2330, 560, 3);
   tambahDuri(3090, 500, 3);
 
   // Koin yang bisa dikumpulkan (+100 skor).
