@@ -67,6 +67,11 @@ PImage[] imgBg = new PImage[JUMLAH_LEVEL + 1];
 PImage vinyet;
 PFont fontUtama;
 
+// Background menu utama dari gambar (data/image/Pulau_Pagi.png dan Pulau_Senja.png).
+// temaMenu: 0 = Pagi Cerah (default), 1 = Senja.
+PImage imgMenuPagi, imgMenuSenja;
+int temaMenu = 0;
+
 // Fungsi setup: Dipanggil sekali saat program mulai: atur jendela P3D, font, muat gambar background, buat tombol, muat suara, putar musik menu.
 void setup() {
   size(1000, 650, P3D);
@@ -84,6 +89,8 @@ void setup() {
   }
   imgBg[0] = imgBg[1];
   vinyet = buatVinyet(400, 260);
+  imgMenuPagi = muatGambar("Pulau_Pagi.png");
+  imgMenuSenja = muatGambar("Pulau_Senja.png");
 
   buatTombol();
   muatSemuaSfx();
@@ -758,6 +765,7 @@ Tombol btnMulai, btnPilih, btnPetunjuk, btnKembali, btnToko, btnPrestasi, btnPra
 Tombol btnLanjut, btnAturan, btnMenuPause;
 // Objek GUI: tombol dan slider volume.
 Tombol btnMulaiAturan, btnAksi1, btnAksi2;
+Tombol btnTema; // tombol ganti tema background menu utama (pojok kiri atas)
 GeserVolume sliderMenu, sliderPause;
 
 // Fungsi buatTombol: Membuat semua objek Tombol dan slider dengan posisi awal. (Posisinya akan diupdate dinamis oleh updatePosisiUI)
@@ -769,6 +777,7 @@ void buatTombol() {
   btnPrestasi = new Tombol(VW / 2 - 115, 441, 230, 44, "PENCAPAIAN", ungu);
   btnPetunjuk = new Tombol(VW / 2 - 115, 490, 230, 44, "PETUNJUK", ungu);
   btnKembali = new Tombol(VW / 2 - 110, 590, 220, 44, "KEMBALI", ungu);
+  btnTema = new Tombol(18, 18, 190, 40, "TEMA: PAGI CERAH", ungu);
 
   btnLanjut = new Tombol(VW / 2 - 115, 285, 230, 50, "LANJUTKAN", cyan);
   btnAturan = new Tombol(VW / 2 - 115, 347, 230, 46, "ATURAN LEVEL", ungu);
@@ -963,9 +972,23 @@ void bolaHias(float x, float y, float r) {
   popMatrix();
 }
 
+// Fungsi latarMenuGambar: Background menu utama dari gambar sesuai tema (pagi/senja).
+// Gambar dipenuhkan ke layar (cover) dan dipusatkan, jadi tetap pas saat jendela maximize/fullscreen.
+void latarMenuGambar() {
+  PImage g = (temaMenu == 0) ? imgMenuPagi : imgMenuSenja;
+  float rasio = max(VW / g.width, VH / g.height);
+  float w = g.width * rasio;
+  float h = g.height * rasio;
+  pushStyle();
+  imageMode(CORNER);
+  noTint();
+  image(g, (VW - w) / 2, (VH - h) / 2, w, h);
+  popStyle();
+}
+
 // Fungsi gambarMenu: Layar menu utama: bola memantul, judul, dan tombol.
 void gambarMenu() {
-  latarMenu();
+  latarMenuGambar();
 
   // Bola hias berjalan melintas layar, memantul dengan abs(sin).
   float bx = wrap(waktuAnimasi * 70, VW + 100) - 50;
@@ -993,6 +1016,8 @@ void gambarMenu() {
   btnToko.display();
   btnPrestasi.display();
   btnPetunjuk.display();
+  btnTema.label = (temaMenu == 0) ? "TEMA: PAGI CERAH" : "TEMA: SENJA";
+  btnTema.display();
   lencanaKoin(VW - 100, 34);
 
   fill(40, 100, 55);

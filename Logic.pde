@@ -757,6 +757,9 @@ void mousePressed() {
     } else if (btnPetunjuk.hover()) {
       klik();
       ubahState(HELP);
+    } else if (btnTema.hover()) {
+      klik();
+      temaMenu = 1 - temaMenu; // ganti tema: pagi <-> senja
     } else {
       sliderMenu.tekan();
     }
