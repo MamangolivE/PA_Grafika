@@ -100,21 +100,26 @@ final int C_NONE = 0, C_HUJAN = 1, C_SALJU = 2, C_ES = 3, C_GOA = 4;
 
 // Class untuk menyimpan data konfigurasi dan settingan dari tiap level
 class Level {
+  // Identitas level: nomor, nama, misi, tip, dan daftar aturan yang tampil di popup
   int id;
   String nama = "";
   String tujuan = "";
   String tip = "";
   String[] aturan = new String[0];
 
+  // Ukuran dunia (lebar), posisi checkpoint (cpX, cpY), dan ketinggian portal keluar (exitY)
   float lebar = 3000;
   float cpX = 1000;
   float cpY = 560;
   float exitY = 510;
+  // traksi: makin kecil nilainya makin licin lantainya. gelap = true khusus level goa (cahaya hanya di sekitar bola)
   float traksi = 1.0;
   boolean gelap = false;
+  // Jenis cuaca dan nomor musik latar yang dipakai level ini
   int tipeCuaca = C_NONE;
   int indexBgm = 1;
 
+  // Warna tema level: tanah, lapisan atas platform, cahaya sekitar, sinar, dan dua warna gradasi langit
   color cTanah = color(150, 100, 50);
   color cAtas = color(60, 170, 60);
   color cAmbient = color(120, 120, 120);
@@ -167,6 +172,7 @@ void barisKoin(float x, float y, int jumlah, float jarak) {
 
 // Class dasar untuk objek platform pijakan dalam ruang 3D
 class Platform {
+  // Posisi (x, y) dan ukuran (w, h) platform. dx = selisih gerak per frame (dipakai platform bergerak), traksi = tingkat licin lantai
   float x, y, w, h;
   float dx = 0;
   float traksi;
@@ -213,6 +219,7 @@ class Platform {
 
 // Class platform yang bisa bergerak bolak-balik (turunan dari class Platform)
 class MovingPlatform extends Platform {
+  // x0 = posisi awal, jarak = jangkauan gerak, kecepatan = pengali kecepatan, fase = sudut gelombang sin saat ini
   float x0, jarak, kecepatan;
   float fase = 0;
 
@@ -248,9 +255,11 @@ class MovingPlatform extends Platform {
 
 // Class untuk objek duri lantai atau stalaktit
 class Spike {
+  // Posisi alas duri dan arah ujungnya: -1 menghadap ke atas (duri lantai), 1 menghadap ke bawah (stalaktit)
   float x, y;
   int arah;
 
+  // Konstruktor Spike: menyimpan posisi dan arah duri
   Spike(float x, float y, int arah) {
     this.x = x;
     this.y = y;
@@ -277,6 +286,7 @@ class Spike {
   void display() {
     noStroke();
     color c = warna();
+    // ay = ketinggian ujung duri, xm = posisi tengah alas (letak ujung duri)
     float ay = y + 27 * arah;
     float xm = x + 12;
 
@@ -310,9 +320,11 @@ class Spike {
 
 // Class untuk item koin yang bisa dikumpulkan pemain
 class Coin {
+  // Posisi koin dan status apakah sudah diambil pemain
   float x, y;
   boolean terambil = false;
 
+  // Konstruktor Coin: menyimpan posisi koin
   Coin(float x, float y) {
     this.x = x;
     this.y = y;
@@ -324,6 +336,7 @@ class Coin {
     return (18 + sin(waktuAnimasi * 3 + x) * 2 + 4) / 2;
   }
 
+  // Skala lebar koin dibatasi minimal 0.18 agar koin tidak benar-benar menghilang saat sedang 'berputar'
   float skalaX() {
     return max(0.18, abs(cos(waktuAnimasi * 2 + x * 0.01)));
   }
@@ -355,20 +368,25 @@ class Coin {
 
 // Class untuk pemain utama (karakter bola)
 class Player {
+  // Posisi dan kecepatan bola (vx = horizontal, vy = vertikal)
   float x, y;
   float vx = 0;
   float vy = 0;
   float r = 18;           // jari-jari hitbox badan (lingkaran, sama dengan ukuran gambar bola)
   float rBahaya = 18;     // hitbox bahaya (duri) = badan bola yang terlihat (1:1)
+  // Parameter fisika: kecepatan gerak, gravitasi, dan kekuatan lompat (negatif karena arah lompat ke atas)
   float kecepatan = 4.5;
   float gravitasi = 0.48;
   float kekuatanLompat = -10.5;
+  // putar = sudut rotasi bola untuk animasi menggelinding
   float putar = 0;
   int koyote = 0;         // sisa frame toleransi lompat setelah meninggalkan tepi platform
 
+  // diTanah = sedang menapak, berdiri = platform yang sedang dipijak
   boolean diTanah = false;
   Platform berdiri = null;
 
+  // Konstruktor Player: menempatkan bola di posisi awal
   Player(float xAwal, float yAwal) {
     x = xAwal;
     y = yAwal;
@@ -388,6 +406,7 @@ class Player {
 
     // Hitung pergerakan menggunakan sistem traksi/gesekan
     vx += (target - vx) * g;
+    // Kecepatan yang sangat kecil dibulatkan jadi 0 agar bola benar-benar berhenti
     if (abs(vx) < 0.05) vx = 0;
 
     // Lompat diizinkan saat menapak atau beberapa frame setelah lepas dari tepi (koyote)
@@ -398,6 +417,7 @@ class Player {
 
     // Tambahkan pengaruh gravitasi konstan agar bola bisa jatuh
     vy += gravitasi;
+    // Kecepatan jatuh dibatasi maksimal 12 supaya tidak terlalu cepat
     vy = min(vy, 12);
 
     // Reset status pijakan sebelum mengecek tabrakan
@@ -411,6 +431,7 @@ class Player {
       selesaikanTabrakan();
     }
 
+    // Saat menapak, koyote diisi 6 frame. Saat melayang nilainya dikurangi tiap frame sampai 0
     if (diTanah) koyote = 6;
     else if (koyote > 0) koyote--;
 
@@ -419,6 +440,7 @@ class Player {
 
     // Tahan posisi bola agar tidak keluar dari batas samping arena
     x = constrain(x, r, lv.lebar - r);
+    // Sudut putar bertambah sesuai kecepatan, sehingga bola terlihat menggelinding
     putar += vx / r;
   }
 
@@ -427,11 +449,13 @@ class Player {
   // dan bola tidak bisa lagi "melayang" di tepi atau menembus dinding platform.
   void selesaikanTabrakan() {
     for (Platform p : platforms) {
+      // (tx, ty) = titik terdekat pada platform dari pusat bola, (dx, dy) = jarak pusat bola ke titik itu, d2 = jarak kuadrat
       float tx = constrain(x, p.x, p.x + p.w);
       float ty = constrain(y, p.y, p.y + p.h);
       float dx = x - tx;
       float dy = y - ty;
       float d2 = dx * dx + dy * dy;
+      // Jika jaraknya tidak lebih kecil dari jari-jari, bola tidak menyentuh platform ini
       if (d2 >= r * r) continue;
 
       if (d2 < 0.0001) {
@@ -441,6 +465,7 @@ class Player {
         diTanah = true;
         berdiri = p;
       } else {
+        // (nx, ny) = arah dorong menjauhi platform. Bola digeser sejauh bagian yang tumpang tindih
         float d = sqrt(d2);
         float nx = dx / d;
         float ny = dy / d;
@@ -465,10 +490,12 @@ class Player {
 
   // Fungsi untuk menjalankan lompatan dan memunculkan efek partikel
   void lompat() {
+    // Lompat hanya berlaku saat game sedang berjalan
     if (gameState == PLAY) {
       vy = kekuatanLompat;
       diTanah = false;
       koyote = 0;
+      // Statistik lompat hanya dicatat di mode normal (bukan practice)
       if (!modePractice) {
         statLompat++;
         dataKotor = true;
@@ -490,6 +517,7 @@ class Player {
     // (Deformasi squash/stretch dimatikan agar bentuk bola selalu lingkaran = hitbox.)
 
     noStroke();
+    // Di level gelap, bola diberi lingkaran cahaya hangat di sekelilingnya
     if (lv.gelap) {
       fill(255, 200, 120, 40);
       ellipse(0, 0, r * 5, r * 5);
@@ -505,6 +533,7 @@ class Player {
 
 // Class untuk mengatur efek partikel (seperti bekas lompatan atau efek koin)
 class Particle {
+  // Posisi, kecepatan, sisa umur (dalam frame), dan warna partikel
   float x, y;
   float vx, vy;
   float umur = 30;
@@ -514,6 +543,7 @@ class Particle {
     this.x = x;
     this.y = y;
     this.warna = warna;
+    // Kecepatan awal acak ke segala arah, dengan kecenderungan ke atas (vy negatif)
     vx = random(-2.5, 2.5);
     vy = random(-3.5, 0.5);
   }
@@ -522,6 +552,7 @@ class Particle {
   void update() {
     x += vx;
     y += vy;
+    // Gravitasi kecil agar lintasan partikel melengkung ke bawah
     vy += 0.12;
     umur--;
   }
@@ -536,15 +567,19 @@ class Particle {
 
 // Fungsi utama untuk update keseluruhan logika permainan (mode continuous)
 void updateGame() {
+  // Perbarui semua platform (platform bergerak akan berpindah posisi)
   for (Platform p : platforms) {
     p.update();
   }
 
+  // Perbarui fisika pemain
   player.update();
   if (!modePractice) cekPrestasi();
 
+  // Periksa interaksi pemain dengan koin, duri, checkpoint, dan portal
   periksaKoin();
   periksaDuri();
+  // Jika state berubah (misalnya mati atau menang), update frame ini dihentikan
   if (gameState != PLAY) return;
   
   periksaCheckpoint();
@@ -582,9 +617,12 @@ void updateGame() {
 
 // Jarak dari titik (px, py) ke elips terisi berpusat di (0,0) dengan jari-jari rx, ry (0 jika di dalam).
 float jarakKeElips(float px, float py, float rx, float ry) {
+  // Cukup dihitung di kuadran pertama karena elips bersifat simetris
   px = abs(px);
   py = abs(py);
+  // Titik di dalam elips dianggap berjarak 0
   if ((px * px) / (rx * rx) + (py * py) / (ry * ry) <= 1) return 0;
+  // Jarak ke tepi elips tidak punya rumus sederhana, jadi dicari dengan iterasi 4 kali mulai dari tebakan awal di sudut 45 derajat
   float tx = 0.707, ty = 0.707;
   for (int i = 0; i < 4; i++) {
     float ex = (rx * rx - ry * ry) * tx * tx * tx / rx;
@@ -601,6 +639,7 @@ float jarakKeElips(float px, float py, float rx, float ry) {
     tx /= t;
     ty /= t;
   }
+  // Jarak antara titik terdekat di tepi elips dengan titik yang diperiksa
   return dist(rx * tx, ry * ty, px, py);
 }
 
@@ -611,13 +650,16 @@ void periksaKoin() {
     // Kena tepat saat lingkaran bola menyentuh bentuk koin yang terlihat (elips berdenyut/berputar).
     if (!c.terambil && jarakKeElips(player.x - c.x, player.y - c.y, c.rKini() * c.skalaX(), c.rKini()) < player.r) {
       c.terambil = true;
+      // Hadiah koin: skor +100, jumlah koin level bertambah, dan dompet permanen bertambah
       skor += 100;
       jumlahKoin++;
       dompet++;
+      // Statistik total koin dicatat dan data ditandai perlu disimpan
       statKoinTotal++;
       dataKotor = true;
       mainkanSfx(sfxKoin);
       
+      // Efek partikel kuning saat koin diambil
       for (int i = 0; i < 8; i++) {
         particles.add(new Particle(c.x, c.y, color(255, 205, 65)));
       }
@@ -628,6 +670,7 @@ void periksaKoin() {
 // Cek tabrakan antara bola pemain dengan semua rintangan duri
 void periksaDuri() {
   for (Spike s : spikes) {
+    // Duri dianggap segitiga dengan alas (x, y) sampai (x + 24, y) dan ujung di (x + 12, y + 27 * arah)
     if (bolaMenyentuhSegitiga(
       player.x, player.y, player.rBahaya,
       s.x, s.y,
@@ -642,7 +685,9 @@ void periksaDuri() {
 // Fungsi matematika untuk mengecek tabrakan antara objek lingkaran dan segitiga
 boolean bolaMenyentuhSegitiga(float cx, float cy, float r,
   float x1, float y1, float x2, float y2, float x3, float y3) {
+  // Kasus 1: pusat bola berada di dalam segitiga
   if (titikDalamSegitiga(cx, cy, x1, y1, x2, y2, x3, y3)) return true;
+  // Kasus 2: salah satu sisi segitiga berjarak tidak lebih dari jari-jari bola
   if (jarakTitikKeGaris(cx, cy, x1, y1, x2, y2) <= r ||
       jarakTitikKeGaris(cx, cy, x2, y2, x3, y3) <= r ||
       jarakTitikKeGaris(cx, cy, x3, y3, x1, y1) <= r) return true;
@@ -652,11 +697,13 @@ boolean bolaMenyentuhSegitiga(float cx, float cy, float r,
 // Mengecek apakah titik pusat bola ada tepat di dalam area segitiga duri
 boolean titikDalamSegitiga(float px, float py, float x1, float y1,
   float x2, float y2, float x3, float y3) {
+  // Menghitung tanda (positif atau negatif) posisi titik terhadap tiap sisi segitiga
   float d1 = (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
   float d2 = (px - x3) * (y2 - y3) - (x2 - x3) * (py - y3);
   float d3 = (px - x1) * (y3 - y1) - (x3 - x1) * (py - y1);
   boolean negatif = d1 < 0 || d2 < 0 || d3 < 0;
   boolean positif = d1 > 0 || d2 > 0 || d3 > 0;
+  // Titik berada di dalam jika semua tandanya sama (tidak campur positif dan negatif)
   return !(negatif && positif);
 }
 
@@ -665,8 +712,10 @@ float jarakTitikKeGaris(float px, float py, float x1, float y1, float x2, float 
   float dx = x2 - x1;
   float dy = y2 - y1;
   
+  // pk = kuadrat panjang garis. Jika 0, berarti garis hanya berupa satu titik
   float pk = dx * dx + dy * dy;
   if (pk == 0) return dist(px, py, x1, y1);
+  // t = posisi proyeksi titik pada garis, dibatasi 0 sampai 1 agar tetap di dalam ruas garis
   float t = constrain(((px - x1) * dx + (py - y1) * dy) / pk, 0, 1);
   return dist(px, py, x1 + t * dx, y1 + t * dy);
 }
@@ -675,7 +724,9 @@ float jarakTitikKeGaris(float px, float py, float x1, float y1, float x2, float 
 void periksaCheckpoint() {
   if (player.x > lv.cpX && !checkpointAktif) {
     checkpointAktif = true;
+    // Titik respawn dipindah ke checkpoint ini
     checkpointX = lv.cpX;
+    // Bonus skor dan statistik hanya diberikan di mode normal
     if (!modePractice) {
       skor += 250;
       statCheckpoint++;
@@ -683,6 +734,7 @@ void periksaCheckpoint() {
     }
     mainkanSfx(sfxCheckpoint);
     
+    // Efek partikel kuning di atas tiang bendera
     for (int i = 0; i < 18; i++) {
       particles.add(new Particle(lv.cpX, lv.cpY - 60, color(255, 220, 40)));
     }
@@ -691,6 +743,7 @@ void periksaCheckpoint() {
 
 // Cek apakah posisi pemain sudah mencapai area portal hijau di ujung kanan level
 void periksaKemenangan() {
+  // Pemain dianggap sampai di portal jika posisinya sudah berada dalam 120 satuan dari ujung kanan level
   if (player.x >= lv.lebar - 120) {
     if (!modePractice) skor += 500;
     mainkanSfx(sfxMenang);
@@ -700,6 +753,7 @@ void periksaKemenangan() {
     } else {
       ubahState(WIN);
     }
+    // Data disimpan setelah level selesai
     simpanData();
   }
 }
@@ -712,11 +766,13 @@ void kehilanganNyawa() {
     matiDiLevel++;
     dataKotor = true;
   }
+  // Suara dan partikel saat terkena bahaya (warna partikel mengikuti skin yang dipakai)
   mainkanSfx(sfxKena);
   
   for (int i = 0; i < 14; i++) {
     particles.add(new Particle(player.x, player.y, skinTengah[skinAktif]));
   }
+  // Input direset agar bola tidak langsung bergerak saat respawn
   resetInput();
 
   // Jika nyawa habis tampilkan layar Game Over, jika tidak respawn di checkpoint terakhir
@@ -724,9 +780,11 @@ void kehilanganNyawa() {
     simpanData();
     ubahState(LOSE);
   } else if (modePractice && practiceCpAda) {
+    // Practice mode: respawn di checkpoint buatan pemain
     player = new Player(practiceCpX, practiceCpY);
     cameraX = max(0, practiceCpX - 300);
   } else {
+    // Mode normal: respawn sedikit di kanan checkpoint terakhir
     player = new Player(checkpointX + 30, lv.cpY - 90);
     cameraX = max(0, checkpointX - 300);
   }
@@ -735,6 +793,7 @@ void kehilanganNyawa() {
 // Mendeteksi event klik pada mouse dan menjalankan aksi tombol GUI sesuai layarnya
 void mousePressed() {
   switch (gameState) {
+  // Layar menu: tombol mulai, pilih level, practice, toko, pencapaian, petunjuk, tema, dan slider volume
   case MENU:
     if (btnMulai.hover()) {
       klik();
@@ -765,6 +824,7 @@ void mousePressed() {
     }
     break;
 
+  // Layar pilih level: klik kartu level untuk memulai game dari level tersebut
   case PILIH:
     for (int i = 1; i <= 5; i++) { // Sesuaikan batas for loop dengan jumlah ketersediaan level
       if (kartuHover(i)) {
@@ -779,6 +839,7 @@ void mousePressed() {
     }
     break;
 
+  // Layar toko skin: klik tombol beli atau pakai pada kartu skin
   case SKIN:
     for (int i = 0; i < JUMLAH_SKIN; i++) {
       if (tombolSkinHover(i)) {
@@ -792,6 +853,7 @@ void mousePressed() {
     }
     break;
 
+  // Layar pencapaian dan petunjuk hanya punya tombol kembali
   case PRESTASI:
     if (btnKembali.hover()) {
       klik();
@@ -806,6 +868,7 @@ void mousePressed() {
     }
     break;
 
+  // Popup aturan: tombol mulai atau kembali akan menutup popup
   case RULES:
     if (btnMulaiAturan.hover()) {
       klik();
@@ -813,6 +876,7 @@ void mousePressed() {
     }
     break;
 
+  // Layar pause: lanjut, buka aturan, kembali ke menu, atau atur volume
   case PAUSE:
     if (btnLanjut.hover()) {
       klik();
@@ -828,6 +892,7 @@ void mousePressed() {
     }
     break;
 
+  // Layar akhir (level selesai, menang, kalah) memakai dua tombol yang sama: aksi utama dan menu
   case LEVEL_DONE:
   case WIN:
   case LOSE:
@@ -844,6 +909,7 @@ void mousePressed() {
 
 // Mengatur perubahan nilai volume ketika slider ditarik/digeser oleh kursor
 void mouseDragged() {
+  // Hanya berjalan jika salah satu slider sedang ditekan (drag = true)
   if (sliderMenu.drag || sliderPause.drag) {
     if (gameState == MENU) sliderMenu.ubah();
     if (gameState == PAUSE) sliderPause.ubah();
@@ -858,6 +924,7 @@ void mouseReleased() {
 
 // Mengatur fungsi navigasi tombol aksi pada layar post-game (menang, lanjut, ngulang)
 void aksiUtama() {
+  // Tombol utama berbeda tiap layar: lanjut ke level berikutnya, main lagi dari level 1, atau mengulang level
   if (gameState == LEVEL_DONE) mulaiLevelBaru(level + 1);
   else if (gameState == WIN) mulaiGameBaru(1);
   else if (gameState == LOSE) ulangLevel();
@@ -871,6 +938,7 @@ void keyPressed() {
     return;
   }
 
+  // ESC: pause atau lanjut saat bermain, tutup popup aturan, atau kembali ke menu dari layar lain. key = 0 mencegah ESC menutup program
   if (key == ESC) {
     key = 0;
     if (gameState == PLAY) ubahState(PAUSE);
@@ -880,12 +948,14 @@ void keyPressed() {
     return;
   }
 
+  // M: mute atau suara hidup lagi
   if (key == 'm' || key == 'M') {
     senyap = !senyap;
     terapkanVolume();
     return;
   }
 
+  // Pada layar tertentu hanya tombol tertentu yang aktif, lalu fungsi langsung selesai (return)
   if (gameState == RULES) {
     if (key == ENTER || key == RETURN || key == ' ') tutupAturan();
     return;
@@ -901,11 +971,14 @@ void keyPressed() {
     return;
   }
 
+  // Kontrol di bawah ini hanya aktif saat game sedang berjalan
   if (gameState != PLAY) return;
 
+  // A/D atau panah kiri/kanan: tandai tombol gerak sedang ditekan
   if (key == 'a' || key == 'A' || keyCode == LEFT) tombolKiri = true;
   if (key == 'd' || key == 'D' || keyCode == RIGHT) tombolKanan = true;
 
+  // Lompat hanya diminta sekali per tekanan. tombolLompat mencegah lompat berulang saat tombol ditahan
   if (key == ' ' || key == 'w' || key == 'W' || keyCode == UP) {
     if (!tombolLompat) {
       tombolLompat = true;
@@ -913,6 +986,7 @@ void keyPressed() {
     }
   }
 
+  // P: pause, H: buka aturan level
   if (key == 'p' || key == 'P') ubahState(PAUSE);
   if (key == 'h' || key == 'H') bukaAturan(PLAY);
 

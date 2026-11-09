@@ -12,7 +12,9 @@ GLWindow jendelaGL = null;
 // Dipanggil sekali dari draw() setelah game berjalan. Semua perubahan jendela dijalankan
 // di thread terpisah supaya thread animasi tidak saling menunggu (deadlock) dengan thread jendela.
 void aturLayarPenuh() {
+  // Judul jendela diubah menjadi BOUNCE
   surface.setTitle("BOUNCE");
+  // Mengambil jendela asli (GLWindow) dari Processing. Jika gagal, fitur maximize otomatis dilewati
   try {
     jendelaGL = (GLWindow) surface.getNative();
   }
@@ -21,6 +23,7 @@ void aturLayarPenuh() {
     println("Jendela tidak bisa di-maximize otomatis: " + e);
     return;
   }
+  // Maximize dijalankan di thread terpisah agar tidak saling menunggu dengan thread animasi
   Thread t = new Thread(new Runnable() {
     public void run() {
       try {
@@ -38,6 +41,7 @@ void aturLayarPenuh() {
 
 // Menukar antara jendela maximized (ada tombol minimize) dan fullscreen murni.
 void ubahLayarPenuh() {
+  // Jika jendela belum siap (null), tidak ada yang dilakukan
   if (jendelaGL == null) return;
   Thread t = new Thread(new Runnable() {
     public void run() {
@@ -54,6 +58,7 @@ void ubahLayarPenuh() {
 }
 
 // ---------- KOORDINAT MOUSE (karena tampilan di-scale mengikuti ukuran layar) ----------
+// Koordinat mouse dibagi SK agar sama dengan koordinat virtual (VW x VH) yang dipakai saat menggambar
 float mx() {
   return mouseX / SK;
 }
@@ -63,6 +68,7 @@ float my() {
 }
 
 // ---------- SKIN BOLA ----------
+// Data skin: nama, deskripsi, harga (koin), dan empat warna untuk membuat efek bola (gelap = tepi, tengah = badan, terang = sorotan, bintik)
 final int JUMLAH_SKIN = 5;
 String[] skinNama = {"MERAH", "BIRU", "HIJAU", "KUNING", "YIN YANG"};
 String[] skinDesk = {"Bola klasik", "Biru samudra", "Hijau rimba", "Kuning emas", "Dua sisi seimbang"};
@@ -72,6 +78,7 @@ color[] skinTengah = {color(195, 35, 35), color(40, 90, 210), color(40, 160, 70)
 color[] skinTerang = {color(235, 55, 45), color(70, 140, 255), color(80, 210, 100), color(255, 215, 60), color(250)};
 color[] skinBintik = {color(255, 190, 160), color(190, 225, 255), color(200, 255, 200), color(255, 250, 190), color(250)};
 
+// skinAktif = skin yang sedang dipakai, skinMilik[i] = true jika skin ke-i sudah dimiliki (skin pertama gratis)
 int skinAktif = 0;
 boolean[] skinMilik = new boolean[JUMLAH_SKIN];
 
@@ -99,6 +106,7 @@ void bolaSkin(int s, float r, float rot) {
     popMatrix();
     return;
   }
+  // Skin biasa digambar berlapis: tepi gelap, badan, sorotan terang, lalu bintik yang ikut berputar
   fill(skinGelap[s]);
   ellipse(0, 0, r * 2 + 4, r * 2 + 4);
   fill(skinTengah[s]);
@@ -114,7 +122,9 @@ void bolaSkin(int s, float r, float rot) {
   popMatrix();
 }
 
+// Menggambar bola 3D (sphere) lengkap dengan lampu, dipakai untuk pratinjau di toko dan menu. (x, y) = posisi, r = jari-jari, s = nomor skin, rot = sudut putar
 void bola3D(float x, float y, float r, int s, float rot) {
+  // Depth test dan lampu dinyalakan hanya selama bola digambar, lalu dimatikan lagi di akhir fungsi
   hint(ENABLE_DEPTH_TEST);
   lightFalloff(1, 0, 0);
   ambientLight(120, 120, 120);
@@ -127,6 +137,7 @@ void bola3D(float x, float y, float r, int s, float rot) {
   fill(skinTengah[s]);
   sphere(r);
   fill(skinTerang[s]);
+  // Bola kecil yang lebih terang di sisi depan bola sebagai sorotan
   translate(r * 0.6, -r * 0.3, r * 0.7);
   sphere(r * 0.2);
   popMatrix();
@@ -134,6 +145,7 @@ void bola3D(float x, float y, float r, int s, float rot) {
   hint(DISABLE_DEPTH_TEST);
 }
 
+// Menggambar kotak 3D yang berputar (hiasan di menu utama). s = ukuran sisi, rot = sudut putar, c = warna
 void kotak3D(float x, float y, float s, float rot, color c) {
   hint(ENABLE_DEPTH_TEST);
   lightFalloff(1, 0, 0);
@@ -154,17 +166,21 @@ void kotak3D(float x, float y, float s, float rot, color c) {
 // ---------- DATA PERMANEN ----------
 int dompet = 0;               // koin permanen yang bisa dibelanjakan
 int statKoinTotal = 0;        // total koin yang pernah diambil
+// Statistik untuk pencapaian: total lompat, jumlah mati, jumlah checkpoint, dan skor tertinggi
 int statLompat = 0;
 int statMati = 0;
 int statCheckpoint = 0;
 int statSkorTertinggi = 0;
 int matiDiLevel = 0;          // dipakai pencapaian "Tanpa Luka"
+// dataKotor = true jika ada perubahan yang belum disimpan ke file
 boolean dataKotor = false;
 
+// Lokasi file simpanan: pa_grafika_save.txt di folder sketch
 String fileSimpan() {
   return sketchPath("pa_grafika_save.txt");
 }
 
+// Mengubah array boolean menjadi teks, misalnya {true, false, true} menjadi '1,0,1' (untuk disimpan ke file)
 String boolKeTeks(boolean[] a) {
   String s = "";
   for (int i = 0; i < a.length; i++) {
@@ -174,6 +190,7 @@ String boolKeTeks(boolean[] a) {
   return s;
 }
 
+// Kebalikan dari boolKeTeks: membaca teks '1,0,1' lalu mengisi array boolean
 void teksKeBool(String v, boolean[] a) {
   String[] p = split(v, ',');
   for (int i = 0; i < min(p.length, a.length); i++) {
@@ -181,7 +198,9 @@ void teksKeBool(String v, boolean[] a) {
   }
 }
 
+// Membaca file simpanan baris demi baris dengan format kunci=nilai. Jika file belum ada, nilai awal tetap dipakai
 void muatData() {
+  // Skin pertama selalu dimiliki
   skinMilik[0] = true;
   try {
     File f = new File(fileSimpan());
@@ -193,6 +212,7 @@ void muatData() {
       if (kv.length < 2) continue;
       String k = trim(kv[0]);
       String v = trim(kv[1]);
+      // Cocokkan kunci dengan variabel yang sesuai
       if (k.equals("dompet")) dompet = int(v);
       else if (k.equals("skinAktif")) skinAktif = int(v);
       else if (k.equals("koinTotal")) statKoinTotal = int(v);
@@ -207,11 +227,13 @@ void muatData() {
   catch (Exception e) {
     println("Gagal memuat data simpanan");
   }
+  // Validasi akhir: skin pertama pasti dimiliki, skin aktif harus dalam rentang dan sudah dimiliki
   skinMilik[0] = true;
   skinAktif = constrain(skinAktif, 0, JUMLAH_SKIN - 1);
   if (!skinMilik[skinAktif]) skinAktif = 0;
 }
 
+// Menulis semua data permanen ke file, satu baris per data dengan format kunci=nilai
 void simpanData() {
   try {
     String[] baris = {
@@ -235,6 +257,7 @@ void simpanData() {
 
 // Menyimpan otomatis tiap 3 detik jika ada perubahan (koin, lompatan, dll).
 void autosimpan() {
+  // frameCount % 180 == 0 berarti kira-kira tiap 3 detik pada 60 fps
   if (dataKotor && frameCount % 180 == 0) simpanData();
 }
 
@@ -245,28 +268,37 @@ void exit() {
 }
 
 // ---------- PENCAPAIAN (ACHIEVEMENT) ----------
+// Ada 14 pencapaian. Nama, deskripsi, hadiah, dan target disimpan di array dengan urutan indeks yang sama
 final int JUMLAH_PRESTASI = 14;
+// Nama pencapaian
 String[] prNama = {
   "LANGKAH PERTAMA", "PENDAKI SALJU", "RAJA ES", "PENJELAJAH KRISTAL", "PENAKLUK LAVA",
   "PEMUNGUT KOIN", "KAYA RAYA", "TANPA LUKA", "PELOMPAT ULUNG", "PANTANG MENYERAH",
   "PEMBURU BENDERA", "SKOR TINGGI", "FASHIONISTA", "KOLEKTOR SKIN"
 };
+// Deskripsi pencapaian
 String[] prDesk = {
   "Selesaikan Level 1", "Selesaikan Level 2", "Selesaikan Level 3", "Selesaikan Level 4", "Selesaikan Level 5",
   "Kumpulkan 50 koin", "Kumpulkan 250 koin", "Selesaikan level tanpa mati", "Melompat 200 kali", "Kehilangan nyawa 15 kali",
   "Aktifkan 5 checkpoint", "Capai skor 5000", "Beli skin pertama", "Miliki semua skin"
 };
+// Hadiah koin tiap pencapaian dan target hitungan (target 0 berarti pencapaian bukan berbasis hitungan)
 int[] prHadiah = {25, 25, 30, 40, 75, 20, 60, 50, 20, 15, 20, 50, 25, 100};
 int[] prTarget = {0, 0, 0, 0, 0, 50, 250, 0, 200, 15, 5, 5000, 0, JUMLAH_SKIN};
+// pencapaianBuka[i] = true jika pencapaian ke-i sudah terbuka
 boolean[] pencapaianBuka = new boolean[JUMLAH_PRESTASI];
 
+// Antrian toast (notifikasi) yang menunggu tampil, toast yang sedang tampil, dan lama tampilnya (dalam frame)
 ArrayList<Integer> antrianToast = new ArrayList<Integer>();
 int toastId = -1;
 float toastWaktu = 0;
 
+// Efek suara saat pencapaian terbuka dan saat membeli skin (dimuat di muatSemuaSfx)
 SoundFile sfxPrestasi, sfxBeli;
 
+// Membuka pencapaian ke-i: ditandai terbuka, hadiah koin masuk dompet, masuk antrian toast, lalu data disimpan
 void bukaPrestasi(int i) {
+  // Abaikan jika indeks tidak valid atau pencapaian sudah pernah dibuka
   if (i < 0 || i >= JUMLAH_PRESTASI || pencapaianBuka[i]) return;
   pencapaianBuka[i] = true;
   dompet += prHadiah[i];
@@ -295,6 +327,7 @@ int nilaiPrestasi(int i) {
   return -1;
 }
 
+// Menghitung berapa skin yang sudah dimiliki
 int jumlahSkinDimiliki() {
   int n = 0;
   for (int i = 0; i < JUMLAH_SKIN; i++) if (skinMilik[i]) n++;
@@ -303,10 +336,12 @@ int jumlahSkinDimiliki() {
 
 // Dipanggil tiap frame saat bermain: memeriksa pencapaian berbasis hitungan.
 void cekPrestasi() {
+  // Perbarui skor tertinggi jika skor sekarang melampauinya
   if (skor > statSkorTertinggi) {
     statSkorTertinggi = skor;
     dataKotor = true;
   }
+  // Periksa tiap pencapaian berbasis hitungan. Jika target tercapai, pencapaian dibuka
   for (int i = 0; i < JUMLAH_PRESTASI; i++) {
     if (!pencapaianBuka[i] && prTarget[i] > 0 && nilaiPrestasi(i) >= prTarget[i]) {
       bukaPrestasi(i);
@@ -316,19 +351,23 @@ void cekPrestasi() {
 
 // Dipanggil ketika sebuah level berhasil diselesaikan.
 void prestasiLevelSelesai(int lvl) {
+  // Pencapaian level selesai memakai indeks 0 sampai 4, sesuai nomor level dikurangi 1
   bukaPrestasi(lvl - 1);
+  // Jika tidak pernah mati di level ini, pencapaian TANPA LUKA dibuka
   if (matiDiLevel == 0) bukaPrestasi(7);
   simpanData();
 }
 
 // Notifikasi pencapaian yang meluncur dari atas layar.
 void gambarToast() {
+  // Ambil toast berikutnya dari antrian jika belum ada yang sedang tampil
   if (toastId < 0 && antrianToast.size() > 0) {
     toastId = antrianToast.remove(0);
     toastWaktu = 0;
   }
   if (toastId < 0) return;
 
+  // Animasi: toast meluncur turun saat masuk dan naik saat keluar. Nilai k dihaluskan dengan rumus smoothstep (k * k * (3 - 2k))
   toastWaktu++;
   float durasi = 230;
   float masuk = constrain(toastWaktu / 18.0, 0, 1);
@@ -336,10 +375,12 @@ void gambarToast() {
   float k = min(masuk, keluar);
   k = k * k * (3 - 2 * k);
 
+  // Ukuran dan posisi kartu toast (di tengah bagian atas layar)
   float w = 390, h = 74;
   float x = (VW - w) / 2;
   float y = -h + (h + 22) * k;
 
+  // Bayangan, latar kartu, lalu garis tepi emas
   noStroke();
   fill(0, 0, 0, 70);
   rect(x + 4, y + 6, w, h, 16);
@@ -351,6 +392,7 @@ void gambarToast() {
   rect(x, y, w, h, 16);
   noStroke();
 
+  // Ikon piala dan teks pencapaian
   gambarPiala(x + 40, y + h / 2, 1.0, true);
 
   fill(180, 120, 10);
@@ -364,6 +406,7 @@ void gambarToast() {
   textSize(12);
   text(prDesk[toastId], x + 76, y + 61);
 
+  // Setelah durasi habis, toast ditutup (toastId = -1)
   if (toastWaktu >= durasi) toastId = -1;
 }
 
@@ -373,8 +416,10 @@ void gambarPiala(float x, float y, float s, boolean buka) {
   translate(x, y);
   scale(s);
   noStroke();
+  // c1 = warna utama piala, c2 = warna bagian gelap (gagang dan kaki)
   color c1 = buka ? color(255, 205, 35) : color(175, 180, 175);
   color c2 = buka ? color(200, 140, 10) : color(135, 140, 135);
+  // Bayangan di bawah, kaki piala, lalu dua gagang samping dari arc
   fill(0, 0, 0, 30);
   ellipse(0, 22, 34, 8);
   fill(c2);
@@ -386,6 +431,7 @@ void gambarPiala(float x, float y, float s, boolean buka) {
   arc(-14, -4, 14, 14, HALF_PI, PI + HALF_PI);
   arc(14, -4, 14, 14, -HALF_PI, HALF_PI);
   noStroke();
+  // Badan piala berbentuk mangkuk dari kurva bezier, ditambah kilau putih transparan
   fill(c1);
   beginShape();
   vertex(-14, -16);
@@ -402,6 +448,7 @@ void gambarPiala(float x, float y, float s, boolean buka) {
 void gambarPrestasi() {
   latarMenu();
 
+  // Hitung jumlah pencapaian yang sudah terbuka
   int terbuka = 0;
   for (int i = 0; i < JUMLAH_PRESTASI; i++) if (pencapaianBuka[i]) terbuka++;
 
@@ -413,17 +460,20 @@ void gambarPrestasi() {
   fill(50, 100, 60);
   text(terbuka + " / " + JUMLAH_PRESTASI + " terbuka", VW / 2, 70);
 
+  // Daftar ditampilkan dalam 2 kolom, masing-masing 7 baris
   float lebarBaris = 410, gap = 16, tinggiBaris = 62;
   float x0 = (VW - (lebarBaris * 2 + gap)) / 2;
   float y0 = 96;
 
   for (int i = 0; i < JUMLAH_PRESTASI; i++) {
+    // kol = kolom (0 atau 1), bar = nomor baris dalam kolom
     int kol = i / 7;
     int bar = i % 7;
     float x = x0 + kol * (lebarBaris + gap);
     float y = y0 + bar * (tinggiBaris + 6);
     boolean buka = pencapaianBuka[i];
 
+    // Kartu pencapaian: bayangan, latar (kuning muda jika terbuka), dan garis tepi
     noStroke();
     fill(0, 0, 0, 40);
     rect(x + 3, y + 4, lebarBaris, tinggiBaris, 12);
@@ -435,6 +485,7 @@ void gambarPrestasi() {
     rect(x, y, lebarBaris, tinggiBaris, 12);
     noStroke();
 
+    // Ikon piala, nama, dan deskripsi pencapaian
     gambarPiala(x + 34, y + tinggiBaris / 2, 0.85, buka);
 
     textAlign(LEFT, CENTER);
@@ -452,6 +503,7 @@ void gambarPrestasi() {
       textSize(13);
       text("+" + prHadiah[i] + " KOIN", x + lebarBaris - 14, y + 31);
     } else {
+      // Pencapaian berbasis hitungan menampilkan bar progres dan angka nilai/target
       int nilai = nilaiPrestasi(i);
       if (nilai >= 0 && prTarget[i] > 0) {
         float p = constrain(nilai / (float) prTarget[i], 0, 1);
@@ -464,6 +516,7 @@ void gambarPrestasi() {
         textSize(11);
         text(min(nilai, prTarget[i]) + "/" + prTarget[i], x + lebarBaris - 14, y + 22);
       } else {
+        // Pencapaian non-hitungan hanya menampilkan hadiah koinnya
         fill(160, 150, 100);
         textSize(12);
         text("+" + prHadiah[i] + " KOIN", x + lebarBaris - 14, y + 31);
@@ -475,15 +528,19 @@ void gambarPrestasi() {
 }
 
 // ---------- LAYAR TOKO SKIN ----------
+// Ukuran dan posisi kartu skin di toko
 final float KARTU_Y = 135, KARTU_W = 156, KARTU_H = 400;
+// pesanToko = pesan sementara (berhasil beli, koin kurang, dan sebagainya) beserta sisa waktu tampilnya
 String pesanToko = "";
 int pesanTokoWaktu = 0;
 
+// Posisi x kartu ke-i. Semua kartu disusun rata tengah
 float kartuSkinX(int i) {
   float total = JUMLAH_SKIN * KARTU_W + (JUMLAH_SKIN - 1) * 14;
   return (VW - total) / 2 + i * (KARTU_W + 14);
 }
 
+// True jika mouse berada di atas tombol aksi (beli atau pakai) pada kartu ke-i
 boolean tombolSkinHover(int i) {
   float x = kartuSkinX(i) + 16, y = KARTU_Y + 340;
   return mx() >= x && mx() <= x + KARTU_W - 32 && my() >= y && my() <= y + 42;
@@ -494,6 +551,7 @@ void lencanaKoin(float xTengah, float y) {
   String t = "KOIN  " + dompet;
   textSize(16);
   textAlign(LEFT, CENTER);
+  // Lebar lencana mengikuti panjang teks agar selalu pas
   float w = textWidth(t) + 62;
   float xl = xTengah - w / 2;
   noStroke();
@@ -510,6 +568,7 @@ void lencanaKoin(float xTengah, float y) {
 }
 
 void gambarToko() {
+  // Latar, judul, dan lencana jumlah koin
   latarMenu();
 
   textAlign(CENTER, CENTER);
@@ -518,13 +577,16 @@ void gambarToko() {
   text("TOKO SKIN", VW / 2, 42);
   lencanaKoin(VW / 2, 90);
 
+  // Gambar satu kartu untuk tiap skin
   for (int i = 0; i < JUMLAH_SKIN; i++) {
     float x = kartuSkinX(i), y = KARTU_Y;
+    // pakai = skin sedang dipakai, milik = sudah dimiliki, bisaBeli = koin dompet cukup, hv = mouse di atas tombol
     boolean pakai = (skinAktif == i);
     boolean milik = skinMilik[i];
     boolean bisaBeli = !milik && dompet >= skinHarga[i];
     boolean hv = tombolSkinHover(i);
 
+    // Bayangan, latar kartu (hijau muda jika sedang dipakai), dan garis tepi
     noStroke();
     fill(0, 0, 0, 50);
     rect(x + 4, y + 6, KARTU_W, KARTU_H, 16);
@@ -547,6 +609,7 @@ void gambarToko() {
     bola3D(0, 0, 38, i, waktuAnimasi * 2);
     popMatrix();
 
+    // Nama dan deskripsi skin
     fill(35, 85, 45);
     textAlign(CENTER, CENTER);
     textSize(19);
@@ -599,6 +662,7 @@ void gambarToko() {
     text(label, bx + bw / 2, by + bh / 2);
   }
 
+  // Pesan sementara dari aksi toko. Jika tidak ada, tampil petunjuk umum
   if (pesanTokoWaktu > 0) {
     pesanTokoWaktu--;
     fill(35, 85, 45);
@@ -617,7 +681,9 @@ void gambarToko() {
 
 // Aksi tombol kartu: beli skin, atau pakai skin yang sudah dimiliki.
 void aksiSkin(int i) {
+  // Skin yang sedang dipakai tidak perlu diproses lagi
   if (skinAktif == i) return;
+  // Kasus 1: skin sudah dimiliki, tinggal dipakai
   if (skinMilik[i]) {
     skinAktif = i;
     klik();
@@ -625,6 +691,7 @@ void aksiSkin(int i) {
     pesanTokoWaktu = 120;
     simpanData();
   } else if (dompet >= skinHarga[i]) {
+    // Kasus 2: koin cukup, skin dibeli. pertama = true jika ini pembelian skin pertama (untuk pencapaian FASHIONISTA)
     boolean pertama = (jumlahSkinDimiliki() == 1);
     dompet -= skinHarga[i];
     skinMilik[i] = true;
@@ -633,9 +700,11 @@ void aksiSkin(int i) {
     pesanToko = "Berhasil membeli skin " + skinNama[i] + "!";
     pesanTokoWaktu = 150;
     simpanData();
+    // Cek pencapaian yang berkaitan dengan pembelian skin
     if (pertama) bukaPrestasi(12);
     if (jumlahSkinDimiliki() >= JUMLAH_SKIN) bukaPrestasi(13);
   } else {
+    // Kasus 3: koin tidak cukup, tampilkan pesan kekurangannya
     klik();
     pesanToko = "Koin belum cukup, kurang " + (skinHarga[i] - dompet) + " koin lagi.";
     pesanTokoWaktu = 150;
@@ -665,6 +734,7 @@ void gambarHitbox() {
   noStroke();
 }
 
+// Kotak keterangan warna hitbox di pojok kiri bawah layar
 void gambarLegendaHitbox() {
   float x = 15, y = VH - 96;
   noStroke();
@@ -685,11 +755,13 @@ void gambarLegendaHitbox() {
 // Penanda checkpoint buatan di practice mode (berlian hijau seperti Geometry Dash).
 void gambarCheckpointPractice() {
   if (!modePractice || !practiceCpAda) return;
+  // k = skala yang berdenyut agar penanda terlihat hidup
   float k = 1 + sin(waktuAnimasi * 4) * 0.08;
   pushMatrix();
   translate(practiceCpX, practiceCpY - 6);
   scale(k);
   noStroke();
+  // Cahaya hijau transparan, lalu bentuk berlian (quad) luar dan dalam
   fill(60, 255, 120, 60);
   ellipse(0, 0, 54, 54);
   fill(40, 200, 90);

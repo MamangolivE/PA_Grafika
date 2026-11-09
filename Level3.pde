@@ -1,33 +1,40 @@
 // =====================================================
 // LEVEL 3 - ISTANA ES
-//   Data level, susunan objek, dan latar. Tema: es, lantai sangat licin, platform bergerak.
+// File ini berisi data level dan susunan objek (platform, duri, koin).
+// Tema level: es dengan lantai yang sangat licin dan platform yang bergerak.
 // =====================================================
 
-// Fungsi infoLevel3: Data Level 3 Istana Es: lantai sangat licin dan serpihan es.
+// Menyimpan data Level 3: nama, tujuan, aturan, ukuran dunia, cuaca es, musik, dan warna.
+// Data dikembalikan dalam bentuk objek Level.
 Level infoLevel3() {
   Level L = new Level();
-  // Identitas dan teks level.
+
+  // Identitas dan teks yang ditampilkan pada level
   L.id = 3;
   L.nama = "ISTANA ES";
   L.tujuan = "Seberangi lantai es yang sangat licin dan naiki platform bergerak.";
   L.tip = "Tip: platform kuning di bawahnya bergerak - tunggu waktu yang pas.";
-  // Daftar aturan yang tampil di popup.
+
+  // Daftar aturan yang muncul pada popup sebelum level dimulai
   L.aturan = new String[] {
     "Lantai es SANGAT licin: mulai mengerem lebih awal.",
     "Platform dengan garis kuning di bawahnya bergerak kiri-kanan.",
     "Kamu ikut terbawa saat berdiri di platform bergerak.",
     "Icicle (duri es) tetap berbahaya. Waspadai tepi platform."
   };
-  // Ukuran dunia, posisi checkpoint dan portal.
+
+  // Lebar dunia level serta posisi checkpoint (cpX, cpY) dan ketinggian portal keluar (exitY)
   L.lebar = 3600;
   L.cpX = 2350;
   L.cpY = 560;
   L.exitY = 450;
-  // Fisika, cuaca, dan musik.
+
+  // Fisika, cuaca, dan musik. Traksi 0.08 membuat lantai sangat licin
   L.traksi = 0.08;
   L.tipeCuaca = C_ES;
   L.indexBgm = 3;
-  // Warna platform, cahaya, dan langit.
+
+  // Warna tanah, es di atas platform, pencahayaan, dan warna langit
   L.cTanah = color(90, 160, 205);
   L.cAtas = color(190, 240, 255);
   L.cAmbient = color(110, 140, 190);
@@ -37,9 +44,11 @@ Level infoLevel3() {
   return L;
 }
 
-// Fungsi bangunLevel3: Menyusun objek Level 3: platform diam dan bergerak, duri, dan koin.
+// Menyusun semua objek yang ada di Level 3: platform diam dan bergerak, duri, dan koin.
 void bangunLevel3() {
-  // Platform: x, y, lebar, tinggi (MovingPlatform = bergerak).
+  // Platform dengan format (x, y, lebar, tinggi).
+  // MovingPlatform adalah platform yang bergerak, dengan tambahan dua nilai di belakang:
+  // jarak gerak dan kecepatan geraknya.
   platforms.add(new Platform(0, 560, 320, 100));
   platforms.add(new Platform(400, 500, 150, 25));
   platforms.add(new Platform(640, 440, 150, 25));
@@ -53,13 +62,14 @@ void bangunLevel3() {
   platforms.add(new Platform(2960, 440, 170, 25));
   platforms.add(new Platform(3200, 500, 400, 100));
 
-  // Rintangan: duri lantai (x, y, jumlah) dan stalaktit menggantung.
+  // Rintangan berupa duri es di lantai, dengan format (x, y, jumlah duri).
   tambahDuri(200, 560, 2);
   tambahDuri(1300, 560, 4);
   tambahDuri(2520, 560, 3);
   tambahDuri(3300, 500, 3);
 
-  // Koin yang bisa dikumpulkan (+100 skor).
+  // Koin yang bisa dikumpulkan. Memakai barisKoin dengan format (x, y, jumlah koin, jarak antar koin)
+  // agar koin tersusun berderet di atas platform. Tiap koin bernilai +100 skor.
   barisKoin(100, 505, 3, 60);
   barisKoin(430, 455, 3, 40);
   barisKoin(670, 395, 3, 40);

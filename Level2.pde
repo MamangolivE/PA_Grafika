@@ -1,33 +1,40 @@
 // =====================================================
 // LEVEL 2 - GUNUNG SALJU
-//   Data level, susunan objek, dan latar. Tema: salju, lantai agak licin.
+// File ini berisi data level dan susunan objek (platform, duri, koin).
+// Tema level: salju dengan lantai yang agak licin.
 // =====================================================
 
-// Fungsi infoLevel2: Data Level 2 Gunung Salju: lantai agak licin, cuaca salju.
+// Menyimpan data Level 2: nama, tujuan, aturan, ukuran dunia, cuaca salju, musik, dan warna.
+// Data dikembalikan dalam bentuk objek Level.
 Level infoLevel2() {
   Level L = new Level();
-  // Identitas dan teks level.
+
+  // Identitas dan teks yang ditampilkan pada level
   L.id = 2;
   L.nama = "GUNUNG SALJU";
   L.tujuan = "Daki lereng bersalju dan capai portal. Salju membuat bola sedikit meluncur.";
   L.tip = "Tip: lepas tombol lebih awal agar bola tidak meluncur ke duri.";
-  // Daftar aturan yang tampil di popup.
+
+  // Daftar aturan yang muncul pada popup sebelum level dimulai
   L.aturan = new String[] {
     "Lantai bersalju agak licin: bola meluncur setelah tombol dilepas.",
     "Duri es lebih rapat - hitung jarak lompatanmu.",
     "Checkpoint menyimpan posisi saat kamu kehilangan nyawa.",
     "Kumpulkan semua koin untuk skor tertinggi."
   };
-  // Ukuran dunia, posisi checkpoint dan portal.
+
+  // Lebar dunia level serta posisi checkpoint (cpX, cpY) dan ketinggian portal keluar (exitY)
   L.lebar = 3400;
   L.cpX = 2200;
   L.cpY = 560;
   L.exitY = 450;
-  // Fisika, cuaca, dan musik.
+
+  // Fisika, cuaca, dan musik. Traksi 0.35 membuat lantai agak licin
   L.traksi = 0.35;
   L.tipeCuaca = C_SALJU;
   L.indexBgm = 2;
-  // Warna platform, cahaya, dan langit.
+
+  // Warna tanah, salju di atas platform, pencahayaan, dan warna langit
   L.cTanah = color(110, 130, 165);
   L.cAtas = color(245, 250, 255);
   L.cAmbient = color(150, 165, 190);
@@ -37,9 +44,10 @@ Level infoLevel2() {
   return L;
 }
 
-// Fungsi bangunLevel2: Menyusun objek Level 2: platform, duri, dan koin.
+// Menyusun semua objek yang ada di Level 2: platform, duri, dan koin.
 void bangunLevel2() {
-  // Platform: x, y, lebar, tinggi (MovingPlatform = bergerak).
+  // Platform dengan format (x, y, lebar, tinggi).
+  // Susunannya naik turun seperti lereng gunung, dengan tanah tebal sebagai tempat istirahat.
   platforms.add(new Platform(0, 560, 300, 100));
   platforms.add(new Platform(390, 500, 160, 25));
   platforms.add(new Platform(620, 430, 160, 25));
@@ -53,13 +61,14 @@ void bangunLevel2() {
   platforms.add(new Platform(2740, 420, 180, 25));
   platforms.add(new Platform(2990, 500, 410, 100));
 
-  // Rintangan: duri lantai (x, y, jumlah) dan stalaktit menggantung.
+  // Rintangan berupa duri di lantai, dengan format (x, y, jumlah duri).
+  // Level 2 tidak memakai platform bergerak maupun stalaktit.
   tambahDuri(140, 560, 3);
   tambahDuri(1160, 560, 4);
   tambahDuri(2330, 560, 3);
   tambahDuri(3090, 500, 3);
 
-  // Koin yang bisa dikumpulkan (+100 skor).
+  // Koin yang bisa dikumpulkan, format (x, y). Tiap koin bernilai +100 skor.
   tambahKoin(200, 505);
   tambahKoin(430, 455);
   tambahKoin(670, 385);

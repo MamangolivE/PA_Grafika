@@ -74,11 +74,13 @@ int temaMenu = 0;
 
 // Fungsi setup: Dipanggil sekali saat program mulai: atur jendela P3D, font, muat gambar background, buat tombol, muat suara, putar musik menu.
 void setup() {
+  // Jendela awal 1000x650 dengan renderer P3D. smooth(4) = antialiasing, sphereDetail = kehalusan bola 3D
   size(1000, 650, P3D);
   smooth(4);
   frameRate(60);
   sphereDetail(24);
 
+  // Font utama dibuat sekali lalu dipakai untuk semua teks
   fontUtama = createFont("SansSerif.bold", 32);
   textFont(fontUtama);
 
@@ -87,11 +89,14 @@ void setup() {
   for (int i = 1; i <= JUMLAH_LEVEL; i++) {
     imgBg[i] = muatGambar(namaBg[i - 1]);
   }
+  // imgBg[0] dipakai sebagai cadangan (sama dengan background level 1)
   imgBg[0] = imgBg[1];
+  // Gambar vinyet (gradasi gelap) dibuat lewat kode, jadi tidak butuh file gambar
   vinyet = buatVinyet(400, 260);
   imgMenuPagi = muatGambar("Pulau_Pagi.png");
   imgMenuSenja = muatGambar("Pulau_Senja.png");
 
+  // Buat tombol, muat suara dan data simpanan, lalu putar musik menu
   buatTombol();
   muatSemuaSfx();
   muatData();
@@ -101,6 +106,7 @@ void setup() {
 
 // Fungsi updatePosisiUI: Menjaga posisi semua tombol dan slider tetap di tengah layar jika di-fullscreen.
 void updatePosisiUI() {
+  // Semua tombol dipusatkan terhadap VW karena lebar layar virtual bisa berubah saat ukuran jendela berubah
   btnMulai.x = VW / 2 - 115;
   btnPilih.x = VW / 2 - 115;
   btnPetunjuk.x = VW / 2 - 115;
@@ -133,6 +139,7 @@ void draw() {
   VW = width / SK;
   updatePosisiUI(); // Panggil update posisi agar menu selalu rapi di tengah
 
+  // waktuAnimasi bertambah tiap frame dan dipakai semua animasi (awan, koin, lava, dan lainnya)
   waktuAnimasi += 0.04;
   // Bersihkan layar dan depth buffer.
   background(0);
@@ -196,6 +203,7 @@ void draw() {
 
 // ----- CLASS EfekCuaca: partikel cuaca layar (hujan, salju, serpihan es, tetesan goa) dengan array posisi/ukuran. -----
 class EfekCuaca {
+  // tipe = jenis cuaca, n = jumlah partikel. px, py = posisi tiap partikel, ps = faktor ukuran/kecepatan acak tiap partikel
   int tipe, n;
   float[] px, py, ps;
 
@@ -257,10 +265,12 @@ class EfekCuaca {
         break;
       }
 
+      // Partikel yang keluar dari bawah layar muncul lagi dari atas (untuk goa, dari titik acak di atas layar)
       if (py[i] > VH + 10) {
         py[i] = (tipe == C_GOA) ? random(-300, -10) : -10;
         px[i] = random(VW);
       }
+      // Partikel yang keluar dari sisi kiri atau kanan muncul dari sisi seberangnya
       if (px[i] < -10) px[i] = VW + 10;
       if (px[i] > VW + 10) px[i] = -10;
     }
@@ -303,6 +313,7 @@ class EfekCuaca {
       strokeWeight(1);
       // Perulangan for: gambar kilau silang pada es.
       for (int i = 0; i < n; i++) {
+        // Kilau hanya tampil 6 frame dari tiap 50 frame, dan waktunya berbeda tiap partikel (i * 7) sehingga berkedip bergantian
         if ((frameCount + i * 7) % 50 < 6) {
           line(px[i] - 5, py[i], px[i] + 5, py[i]);
           line(px[i], py[i] - 5, px[i], py[i] + 5);
@@ -334,6 +345,7 @@ void gradien(color a, color b) {
   int yy = 0;
   // Perulangan while: gambar strip warna dari atas ke bawah.
   while (yy < VH) {
+    // Warna berubah bertahap dari a ke b sesuai posisi y (lerpColor)
     fill(lerpColor(a, b, yy / (float) VH));
     rect(0, yy, VW, 6);
     yy += 5;
@@ -344,12 +356,16 @@ void gradien(color a, color b) {
 void awan(float g, color c, float yBase, int jumlah) {
   noStroke();
   fill(c);
+  // lebarWrap = lebar area putar awan, dibuat lebih lebar dari layar agar awan muncul dan hilang di luar layar
   float lebarWrap = VW + 300;
   float jarak = lebarWrap / jumlah;
   // Perulangan for: gambar tiap awan.
   for (int i = 0; i < jumlah; i++) {
+    // Posisi x awan digeser oleh paralaks (g) dan waktu. wrap membuatnya berulang
     float x = wrap(i * jarak - g - waktuAnimasi * 6, lebarWrap) - 150;
+    // Tinggi awan dibuat 3 tingkat (i % 3) agar tidak sejajar
     float y = yBase + (i % 3) * 38;
+    // Satu awan terdiri dari tiga ellipse yang saling tumpang tindih
     ellipse(x, y, 110, 40);
     ellipse(x - 32, y + 4, 60, 32);
     ellipse(x + 30, y - 10, 66, 44);
@@ -360,6 +376,7 @@ void awan(float g, color c, float yBase, int jumlah) {
 void bukit(float g, float yBase, float tinggi, float seg, color c) {
   fill(c);
   noStroke();
+  // i0 = nomor segmen pertama yang terlihat, x0 = posisi x awalnya, n = jumlah segmen yang digambar
   int i0 = floor(g / seg);
   float x0 = i0 * seg - g;
   int n = ceil(VW / seg) + 2;
@@ -369,6 +386,7 @@ void bukit(float g, float yBase, float tinggi, float seg, color c) {
   vertex(x0, yBase);
   // Perulangan for: tambahkan satu gelombang bezier per segmen.
   for (int i = 0; i < n; i++) {
+    // Tinggi tiap segmen bergantian (100%, 65%, 85%) supaya bukit tidak seragam
     int m = (i0 + i) % 3;
     float t = tinggi * (m == 0 ? 1.0 : (m == 1 ? 0.65 : 0.85));
     float x = x0 + i * seg;
@@ -382,6 +400,7 @@ void bukit(float g, float yBase, float tinggi, float seg, color c) {
 void kristal(float x, float y, float s, color c) {
   noStroke();
   fill(c);
+  // Badan kristal berbentuk belah ketupat (quad), lalu kilau segitiga putih transparan di sisi atas
   quad(x, y - s * 1.6, x + s * 0.8, y, x, y + s * 1.2, x - s * 0.8, y);
   fill(255, 255, 255, 90);
   triangle(x, y - s * 1.6, x + s * 0.8, y, x, y);
@@ -392,10 +411,12 @@ void jalankanGame() {
   if (gameState == PLAY) {
     updateGame();
   }
+  // Cuaca ikut berhenti saat game sedang di-pause
   if (gameState != PAUSE) {
     cuaca.update();
   }
 
+  // Urutan menggambar: latar, dunia 3D, vinyet (hanya level gelap), cuaca, kilat, lalu HUD paling atas
   gambarLatarGame();
   gambarDunia();
 
@@ -405,6 +426,7 @@ void jalankanGame() {
 
   cuaca.display();
 
+  // Kilatan petir: layar ditutup lapisan putih transparan yang memudar (nilai kilat dikurangi di updateGame)
   if (kilat > 0.02) {
     noStroke();
     fill(255, 255, 255, 150 * kilat);
@@ -489,10 +511,12 @@ void gambarDunia() {
 void aturCahaya() {
   if (lv.gelap) {
 
+    // Level gelap: cahaya sekitar redup dan titik cahaya (pointLight) mengikuti bola. Falloff membuat cahaya meredup seiring jarak
     ambientLight(red(lv.cAmbient), green(lv.cAmbient), blue(lv.cAmbient));
     lightFalloff(0.55, 0.0, 0.000035);
     pointLight(255, 205, 140, player.x, player.y - 15, 150);
   } else {
+    // Level terang: cahaya sekitar ditambah cahaya searah seperti matahari
     lightFalloff(1, 0, 0);
     ambientLight(red(lv.cAmbient), green(lv.cAmbient), blue(lv.cAmbient));
     directionalLight(red(lv.cSinar), green(lv.cSinar), blue(lv.cSinar), -0.4, 0.6, -1);
@@ -507,8 +531,10 @@ PImage buatVinyet(int w, int h) {
   for (int y = 0; y < h; y++) {
     // Perulangan for: setiap kolom piksel; alpha makin gelap menjauhi pusat.
     for (int x = 0; x < w; x++) {
+      // d = jarak piksel ke pusat (0 di tengah, 1 di tepi). Alpha makin besar mendekati tepi
       float d = dist(x, y, w / 2.0, h / 2.0) / (w / 2.0);
       float a = constrain(map(d, 0.18, 0.9, 0, 235), 0, 235);
+      // Warna biru gelap hampir hitam dengan alpha sesuai jarak
       im.pixels[y * w + x] = color(4, 6, 16, a);
     }
   }
@@ -518,8 +544,10 @@ PImage buatVinyet(int w, int h) {
 
 // Fungsi gambarVinyet: Menempel gambar vinyet di posisi bola pada layar.
 void gambarVinyet() {
+  // sx, sy = posisi bola di layar (posisi dunia dikurangi posisi kamera)
   float sx = player.x - cameraX;
   float sy = player.y;
+  // ta = transparansi yang berdenyut pelan agar cahaya senter terlihat hidup
   float ta = 238 + sin(waktuAnimasi * 7) * 14;
   float lw = 860;          // area bercahaya hanya di sekitar bola
   float lh = lw * 0.65;
@@ -547,6 +575,7 @@ void gambarVinyet() {
 
 // Fungsi hati: Menggambar ikon hati (nyawa) memakai bezierVertex.
 void hati(float x, float y, float s) {
+  // Bentuk hati dibuat dari dua kurva bezier yang bertemu di bagian bawah dan di tengah atas
   beginShape();
   vertex(x, y + s * 0.6);
   bezierVertex(x - s, y - s * 0.1, x - s * 0.5, y - s * 0.9, x, y - s * 0.3);
@@ -556,6 +585,7 @@ void hati(float x, float y, float s) {
 
 // Fungsi gambarHUD: Menggambar HUD: nama level, hati nyawa, skor, koin, dan petunjuk tombol.
 void gambarHUD() {
+  // Panel nama level, nyawa, skor, dan koin di kiri atas
   noStroke();
   fill(255, 255, 235, 235);
   rect(15, 15, 340, 72, 12);
@@ -578,6 +608,7 @@ void gambarHUD() {
   fill(180, 130, 20);
   text("KOIN " + jumlahKoin, 250, 64);
 
+  // Panel petunjuk tombol di kanan atas dan kanan bawah
   fill(255, 255, 245, 225);
   rect(VW - 330, 15, 315, 34, 9);
   fill(35, 85, 45);
@@ -590,6 +621,7 @@ void gambarHUD() {
   fill(35, 85, 45);
   text("A / D : GERAK   |   SPASI : LOMPAT", VW - 147, VH - 36);
 
+  // Info tambahan hanya muncul di practice mode
   if (modePractice) {
     noStroke();
     fill(110, 70, 190, 235);
@@ -600,11 +632,13 @@ void gambarHUD() {
     text("PRACTICE MODE  |  C : CHECKPOINT  |  X : HAPUS  |  B : HITBOX", 220, 107);
   }
 
+  // Legenda warna hitbox muncul jika tombol B ditekan
   if (tampilHitbox) gambarLegendaHitbox();
 }
 
 // Fungsi gambarCheckpoint: Menggambar tiang dan bendera checkpoint yang berkibar.
 void gambarCheckpoint() {
+  // Tiang dari box 3D, lalu bendera dari kurva bezier yang bergelombang (k dihitung dari sin)
   float x = lv.cpX;
   float y = lv.cpY;
 
@@ -617,6 +651,7 @@ void gambarCheckpoint() {
 
   float y0 = y - 58;
   float k = sin(waktuAnimasi * 4) * 5;
+  // Warna bendera: kuning jika checkpoint sudah aktif, merah jika belum
   fill(checkpointAktif ? color(255, 220, 40) : color(230, 70, 55));
   beginShape();
   vertex(x, y0);
@@ -627,12 +662,14 @@ void gambarCheckpoint() {
 
 // Fungsi gambarPortal: Menggambar portal EXIT dari cincin yang berputar (rotateY).
 void gambarPortal() {
+  // Portal diletakkan 100 satuan dari ujung kanan dunia pada ketinggian exitY
   float x = lv.lebar - 100;
   float y = lv.exitY;
 
   pushMatrix();
   translate(x, y, 0);
   noStroke();
+  // Cahaya hijau di dalam portal berdenyut mengikuti sin
   fill(100, 230, 95, 70 + sin(waktuAnimasi * 3) * 25);
   ellipse(0, 0, 58, 74);
 
@@ -656,6 +693,7 @@ void gambarPortal() {
 
 // ----- CLASS Tombol: tombol GUI (posisi, label, warna) dengan deteksi hover mouse (Modul 4). -----
 class Tombol {
+  // Posisi, ukuran, teks, dan warna tombol
   float x, y, w, h;
   String label;
   color warna;
@@ -683,6 +721,7 @@ class Tombol {
       fill(red(warna), green(warna), blue(warna), 70);
       rect(x - 4, y - 4, w + 8, h + 8, 13);
     }
+    // Tombol digambar sebagai kotak 3D yang sedikit miring (rotateX/rotateY) dengan lampu sendiri, dan lebih miring saat di-hover
     hint(ENABLE_DEPTH_TEST);
     lightFalloff(1, 0, 0);
     ambientLight(150, 150, 150);
@@ -703,6 +742,7 @@ class Tombol {
     fill(35, 85, 45);
     textAlign(CENTER, CENTER);
     textSize(15);
+    // Teks diletakkan sedikit di depan kotak (z = 14) agar tidak tertutup
     text(label, 0, 0, 14);
     popMatrix();
     hint(DISABLE_DEPTH_TEST);
@@ -711,6 +751,7 @@ class Tombol {
 
 // ----- CLASS GeserVolume: slider untuk mengatur volume suara dengan mouse. -----
 class GeserVolume {
+  // Posisi dan panjang track. drag = true saat slider sedang digeser
   float x, y, w;
   boolean drag = false;
 
@@ -748,6 +789,7 @@ class GeserVolume {
     textSize(12);
     text("VOLUME  " + round(volume * 100) + "%" + (senyap ? "  (MUTE)" : ""), x + w / 2, y - 16);
 
+    // Track abu-abu, bagian terisi (sesuai volume), dan tombol bulat penanda
     fill(200, 210, 190);
     rect(x, y - 3, w, 6, 3);
     fill(cyan);
@@ -793,10 +835,12 @@ void buatTombol() {
 
 // Fungsi mulaiTransformPopup: Menyiapkan popup: layar digelapkan dan popup di-scale membesar (animasi) memakai transformasi.
 void mulaiTransformPopup() {
+  // popupAnim bergerak mendekati 1 secara halus sehingga popup muncul dengan animasi membesar
   popupAnim = lerp(popupAnim, 1, 0.2);
   noStroke();
   fill(0, 0, 0, 150 * popupAnim);
   rect(0, 0, VW, VH);
+  // Popup diskalakan dari titik tengah layar. popMatrix dilakukan di akhir tiap fungsi popup
   pushMatrix();
   translate(VW / 2, VH / 2);
   scale(0.8 + 0.2 * popupAnim);
@@ -820,6 +864,7 @@ void panel(float x, float y, float w, float h, String judul, color aksen) {
 
 // Fungsi gambarBanner: Menggambar banner mini level dari bentuk dasar (tanpa gambar).
 void gambarBanner(int idx, float x, float y, float w, float h) {
+  // Warna banner diambil dari data level (langit, tanah, dan lapisan atas)
   Level L = infoLevel(constrain(idx, 1, JUMLAH_LEVEL));
   noStroke();
   // Perulangan for: gradasi langit per 4 piksel.
@@ -827,6 +872,7 @@ void gambarBanner(int idx, float x, float y, float w, float h) {
     fill(lerpColor(L.langitA, L.langitB, i / h));
     rect(x, y + i, w, 4);
   }
+  // Tanah dan satu platform kecil di atasnya
   fill(L.cTanah);
   rect(x, y + h * 0.78, w, h * 0.22);
   fill(L.cAtas);
@@ -841,9 +887,11 @@ void gambarBanner(int idx, float x, float y, float w, float h) {
     float sx = x + w * 0.12 + i * 14;
     triangle(sx, y + h * 0.78, sx + 7, y + h * 0.78 - 16, sx + 14, y + h * 0.78);
   }
+  // Koin dan bola hias sebagai ilustrasi level
   fill(255, 205, 35);
   ellipse(x + w * 0.74, y + h * 0.5, 14, 14);
   bolaHias(x + w * 0.4, y + h * 0.78 - 16, 16);
+  // Garis tepi banner
   noFill();
   stroke(35, 85, 45);
   strokeWeight(2);
@@ -854,9 +902,12 @@ void gambarBanner(int idx, float x, float y, float w, float h) {
 // Fungsi gambarPopupAturan: Popup aturan level: misi, daftar aturan, dan tombol mulai.
 void gambarPopupAturan() {
   mulaiTransformPopup();
+  // Ukuran panel popup dan posisinya di tengah layar
   float w = 660, h = 450, x = (VW - w) / 2, y = (VH - h) / 2;
+  // Warna header memakai versi gelap warna lapisan atas platform (untuk level salju yang berwarna putih dipakai warna ungu)
   panel(x, y, w, h, "LEVEL " + level + "  -  " + lv.nama, lv.cAtas == color(245, 250, 255) ? ungu : darker(lv.cAtas));
 
+  // Banner level di kiri, misi di kanan, lalu daftar aturan di bawah
   gambarBanner(level, x + 28, y + 74, 220, 124);
 
   fill(35, 85, 45);
@@ -882,6 +933,7 @@ void gambarPopupAturan() {
   textSize(12);
   text("A / D gerak  |  SPASI lompat  |  P pause  |  M suara  |  H buka aturan", x + w / 2, y + h - 80);
 
+  // Label tombol: KEMBALI jika popup dibuka dari pause, MULAI jika dari awal level
   btnMulaiAturan.label = (stateSebelumRules == PAUSE) ? "KEMBALI" : "MULAI";
   btnMulaiAturan.display();
   popMatrix();
@@ -912,6 +964,7 @@ void gambarPopupLevelSelesai() {
   textSize(18);
   text(lv.nama, VW / 2, 215);
   textSize(17);
+  // Statistik level: koin yang didapat di level ini (jumlahKoin dikurangi koin awal level), bonus selesai, dan sisa nyawa
   text("Koin level ini : " + (jumlahKoin - koinAwalLevel), VW / 2, 255);
   text("Bonus selesai : +" + (modePractice ? 0 : 500), VW / 2, 285);
   text("Nyawa tersisa : " + nyawa, VW / 2, 315);
@@ -964,6 +1017,7 @@ void gambarPopupKalah() {
 // Fungsi bolaHias: Menggambar bola dengan skin yang sedang dipakai (dipakai menu, banner, loading).
 void bolaHias(float x, float y, float r) {
   noStroke();
+  // Bayangan di tanah (y = 600), lalu bola digambar dengan skin yang dipakai. Rotasi dihitung dari posisi x agar terlihat menggelinding
   fill(0, 0, 0, 40);
   ellipse(x, 600, r * 1.6, 8);
   pushMatrix();
@@ -975,10 +1029,13 @@ void bolaHias(float x, float y, float r) {
 // Fungsi latarMenuGambar: Background menu utama dari gambar sesuai tema (pagi/senja).
 // Gambar dipenuhkan ke layar (cover) dan dipusatkan, jadi tetap pas saat jendela maximize/fullscreen.
 void latarMenuGambar() {
+  // Pilih gambar sesuai tema yang aktif
   PImage g = (temaMenu == 0) ? imgMenuPagi : imgMenuSenja;
+  // rasio diambil yang terbesar agar gambar menutupi seluruh layar (cover) tanpa celah
   float rasio = max(VW / g.width, VH / g.height);
   float w = g.width * rasio;
   float h = g.height * rasio;
+  // pushStyle dan popStyle dipakai agar pengaturan imageMode dan tint tidak mengganggu gambar lain
   pushStyle();
   imageMode(CORNER);
   noTint();
@@ -994,9 +1051,11 @@ void gambarMenu() {
   float bx = wrap(waktuAnimasi * 70, VW + 100) - 50;
   float by = 590 - abs(sin(waktuAnimasi * 3)) * 140;
   bolaHias(bx, by, 22);
+  // Bola dan kotak 3D yang berputar di kiri dan kanan judul
   bola3D(VW / 2 - 240, 140, 34, skinAktif, waktuAnimasi * 2);
   kotak3D(VW / 2 + 240, 140, 52, waktuAnimasi * 1.5, color(60, 185, 70));
 
+  // Judul BOUNCE dicetak dua kali (bayangan gelap lalu teks hijau) dan bergerak naik turun pelan memakai sin
   float ly = 140 + sin(waktuAnimasi * 2) * 5;
   textAlign(CENTER, CENTER);
   textSize(76);
@@ -1010,12 +1069,14 @@ void gambarMenu() {
   textSize(18);
   text("PETUALANGAN 5 DUNIA", VW / 2, 222);
 
+  // Tombol menu, lalu tombol tema, lencana koin, dan slider volume
   btnMulai.display();
   btnPilih.display();
   btnPractice.display();
   btnToko.display();
   btnPrestasi.display();
   btnPetunjuk.display();
+  // Label tombol tema mengikuti tema yang sedang aktif
   btnTema.label = (temaMenu == 0) ? "TEMA: PAGI CERAH" : "TEMA: SENJA";
   btnTema.display();
   lencanaKoin(VW - 100, 34);
@@ -1048,6 +1109,7 @@ void gambarPetunjuk() {
   textAlign(LEFT, CENTER);
   fill(35, 75, 45);
   textSize(16);
+  // Isi tabel kontrol: kolom pertama tombol, kolom kedua fungsinya
   String[][] kontrol = {
     {"A / D atau panah kiri / kanan", "Bergerak ke kiri dan kanan"},
     {"SPASI / W / panah atas", "Melompat"},
@@ -1076,6 +1138,7 @@ void gambarPetunjuk() {
 
   fill(35, 75, 45);
   textSize(15);
+  // Penjelasan tiap dunia, bahaya, dan sistem skor
   text("Level 1 Padang Hujan  -  Level 2 Gunung Salju (licin)", VW / 2, 410);
   text("Level 3 Istana Es (sangat licin, platform bergerak)  -  Level 4 Goa Kristal (gelap)", VW / 2, 438);
   text("Level 5 Kawah Lava (lava di dasar arena). Jatuh/Kena Duri = kurang nyawa.", VW / 2, 476);
@@ -1109,12 +1172,14 @@ void gambarPilihLevel() {
 
   // Perulangan for: gambar kartu level 1 sampai 5.
   for (int i = 1; i <= JUMLAH_LEVEL; i++) {
+    // Posisi kartu: tiap kartu berjarak 205 satuan
     float x = (i - 1) * 205;
     float y = 130;
 
     // Logika perhitungan batas kursor (hover hitbox) dengan mempertimbangkan perataan tengah
     boolean hv = mx() >= (x * 0.85 + startX) && mx() <= ((x + 190) * 0.85 + startX) && my() >= (y * 0.85) && my() <= ((y + 340) * 0.85);
 
+    // Data level dipakai untuk menampilkan nama dan misi pada kartu
     Level L = infoLevel(i);
 
     noStroke();
@@ -1127,6 +1192,7 @@ void gambarPilihLevel() {
     strokeWeight(hv ? 3 : 1.5);
     rect(x, y, 190, 340, 16);
 
+    // Isi kartu: banner, nomor level, nama, misi singkat, dan tombol MAIN
     gambarBanner(i, x + 10, y + 10, 170, 108);
     fill(35, 105, 50);
     textAlign(CENTER, CENTER);
@@ -1164,6 +1230,7 @@ boolean kartuHover(int i) {
 
 // Fungsi gambarLoading: Layar loading tiap level: progress bar, membangun level dan memuat audio bertahap, lalu membuka popup aturan.
 void gambarLoading() {
+  // Progres loading (0 sampai 1) dihitung dari loadTimer dibanding DURASI_LOADING
   loadTimer++;
   float p = constrain(loadTimer / (float) DURASI_LOADING, 0, 1);
 
@@ -1182,6 +1249,7 @@ void gambarLoading() {
   if (p >= 0.35) pesan = "Membangun level...";
   if (p >= 0.7) pesan = "Memuat audio...";
 
+  // Latar loading memakai background level yang bergeser pelan
   gambarBg(level, waktuAnimasi * 30, lv.langitA, lv.langitB);
   noStroke();
 
@@ -1192,8 +1260,10 @@ void gambarLoading() {
   textSize(46);
   text(lv.nama, VW / 2, 105);
 
+  // Banner level di tengah layar
   gambarBanner(level, VW / 2 - 220, 150, 440, 250);
 
+  // Progress bar: bayangan, latar transparan, lalu bagian terisi yang lebarnya mengikuti p
   float bx = VW / 2 - 250, by = 470, bw = 500, bh = 22;
   noStroke();
   fill(0, 0, 0, 90);
@@ -1203,8 +1273,10 @@ void gambarLoading() {
   fill(lv.cAtas);
   rect(bx, by, bw * p, bh, 10);
 
+  // Bola hias mengikuti ujung progress bar sambil memantul
   bolaHias(bx + bw * p, by - 16 - abs(sin(waktuAnimasi * 6)) * 14, 11);
 
+  // Persentase loading dan tip level
   fill(255);
   textSize(15);
   text(pesan + "  " + floor(p * 100) + "%", VW / 2, by + 48);
@@ -1240,11 +1312,13 @@ int bgmAktif = -1;
 SoundFile muatSuara(String nama) {
   // Penanganan error: jika file/audio gagal dimuat, program tidak crash.
   try {
+    // Cek dulu apakah file ada di folder data/audio
     File f = new File(dataPath("audio/" + nama));
     if (!f.exists()) {
       println("Audio tidak ditemukan: " + nama);
       return null;
     }
+    // Library Sound membutuhkan referensi sketch (this) saat memuat file
     return new SoundFile(this, "audio/" + nama);
   }
   catch (Exception e) {
@@ -1289,12 +1363,15 @@ void klik() {
 
 // Fungsi mainkanBgm: Memutar musik latar nomor i secara berulang (loop); menghentikan musik sebelumnya.
 void mainkanBgm(int i) {
+  // Jika musik yang sama sudah diputar, tidak perlu diulang
   if (bgmAktif == i) return;
   hentikanBgm();
+  // Musik dimuat saat pertama kali dipakai (lazy loading) agar startup tidak berat
   if (bgm[i] == null) bgm[i] = muatSuara(namaBgm[i]);
   bgmAktif = i;
   if (bgm[i] != null) {
     bgm[i].loop();
+    // Volume musik latar separuh dari volume utama supaya tidak menutupi efek suara
     bgm[i].amp(senyap ? 0 : volume * 0.5);
   }
 }
@@ -1312,11 +1389,13 @@ void hentikanBgm() {
 void mainkanAmbient(int i) {
   if (ambAktif == i) return;
   hentikanAmbient();
+  // Nomor di luar daftar diabaikan
   if (i < 1 || i >= namaAmb.length) return;
   if (amb[i] == null) amb[i] = muatSuara(namaAmb[i]);
   ambAktif = i;
   if (amb[i] != null) {
     amb[i].loop();
+    // Suara ambien dibuat sedikit lebih pelan (45% dari volume utama)
     amb[i].amp(senyap ? 0 : volume * 0.45);
   }
 }
@@ -1347,6 +1426,7 @@ void gambarBg(int idx, float geser, color a, color b) {
     gradien(a, b);
     return;
   }
+  // w = lebar satu tile gambar setelah disesuaikan dengan tinggi layar, n = nomor tile pertama, x = posisi tile pertama di layar
   float w = im.width * (VH / (float) im.height);
   int n = floor(geser / w);
   float x = -(geser - n * w);
